@@ -1,0 +1,648 @@
+# PPL (Prompt Programming Language) Specification v2.0
+
+> Pronounced: /ˈpip(ə)l/ like *people*
+> Extension: `.ppl`
+> MIME type: `text/x-ppl`
+
+---
+
+## 1. Overview
+
+PPL (Prompt Programming Language) is a structured domain-specific language for writing LLM prompts.
+
+It combines:
+
+- declarative structure
+- deterministic reasoning
+- functional-style transformations
+- pipeline orchestration
+
+Design goals:
+
+- Determinism
+- Token efficiency
+- Readability
+- Static validation
+- Composability
+- Model portability
+
+PPL separates:
+
+- Logic → internal reasoning
+- Flow → execution sequencing
+- Structure → input/output contracts
+
+### Example: Complete PPL Document
+
+```
+TASK
+  Classify customer feedback as positive, neutral, or negative
+
+ROLE
+  Sentiment analyst
+  tone=neutral
+
+INPUT
+  FORMAT: text
+  SOURCE: user_query
+  max_length=1000
+
+REASONING
+  IF feedback CONTAINS "love|great|amazing" THEN sentiment=positive
+  ELSE IF feedback CONTAINS "hate|bad|terrible" THEN sentiment=negative
+  ELSE sentiment=neutral
+
+OUTPUT
+  FORMAT: json
+  SCHEMA
+    ```json
+    { "sentiment": "string", "confidence": "number" }
+    ```
+```
+
+---
+
+## 2. Basic Syntax
+
+- **Encoding:** UTF-8
+- **Line endings:** LF (`\n`) or CRLF (`\r\n`)
+- **Indentation:** 2 or 4 spaces (consistent). No tabs.
+- **Empty lines:** Allowed anywhere, ignored by validator.
+- **Section Separator:** `---` on its own line. Blank lines around it optional. Cannot be first or last line.
+- **Comments:** Start with `#`. Ignored by validator.
+
+### Example: Basic Syntax
+
+```
+TASK
+  Calculate total sales
+  # This is a comment - ignored
+
+---
+
+ROLE
+  Data analyst
+
+INPUT
+  FORMAT: csv
+  SOURCE: sales_data
+```
+
+---
+
+## 3. Sections
+
+Sections are defined by `ALL_CAPS` headers at the start of a line.
+
+### 3.1 Required Sections
+
+| Section | Required | Purpose |
+|---------|----------|---------|
+| `TASK` or `GOAL` | Yes (at least one) | Primary objective. |
+| `ROLE` | Yes | The persona or identity the LLM should adopt. |
+| `INPUT` | Yes | Defines the input data and its format. Must have a `FORMAT` subsection. |
+| `OUTPUT` | Yes | Defines the expected output structure. Must have a `FORMAT` subsection. |
+
+### Example: Required Sections
+
+```
+TASK
+  Translate English to French
+
+ROLE
+  Professional translator
+  style=formal
+
+INPUT
+  FORMAT: text
+  SOURCE: user_query
+
+OUTPUT
+  FORMAT: text
+  max_length=500
+```
+
+### 3.2 Recommended Sections
+
+| Section | Recommended | Purpose |
+|---------|-------------|---------|
+| `REASONING` or `STEPS` or `ALGORITHM` | Highly Recommended | Logical process, decision trees, and algorithms. |
+| `FLOW` | Recommended | Pipeline using `|>` operator. |
+
+### Example: With Recommended Sections
+
+```
+TASK
+  Answer customer question from knowledge base
+
+ROLE
+  Support agent
+
+INPUT
+  FORMAT: text
+
+REASONING
+  IF question CONTAINS "return policy" THEN search returns_doc
+  ELSE IF question CONTAINS "shipping" THEN search shipping_doc
+  ELSE search general_faq
+
+FLOW
+  $question |> search_kb |> rank_results |> generate_answer
+
+OUTPUT
+  FORMAT: markdown
+```
+
+### 3.3 Optional Sections
+
+| Section | Purpose |
+|---------|---------|
+| `CONSTRAINTS` | Hard rules (e.g., "No external knowledge"). |
+| `AUDIENCE` | Target audience for response. |
+| `TONE` | Desired tone (e.g., "concise", "technical"). |
+| `GROUNDING` | Source of truth (e.g., `provided_text_only`). |
+
+### Example: With Optional Sections
+
+```
+TASK
+  Explain quantum computing
+
+ROLE
+  Physics teacher
+
+AUDIENCE
+  10-year-old children
+
+TONE
+  playful, use analogies
+
+CONSTRAINTS
+  - No math equations
+  - Max 200 words
+
+GROUNDING
+  provided_text_only
+
+OUTPUT
+  FORMAT: text
+```
+
+---
+
+## 4. Subsections & Content
+
+Indentation defines hierarchy.
+
+- **Subsection Title:** `ALL_CAPS` on indented line.
+  - *With inline value:* `FORMAT: json`
+  - *Without inline value:* `FORMAT`
+- **Variable:** `key=value` (e.g., `max_tokens=500`). No spaces around `=`.
+- **Lists:**
+  - Unordered: `- item`
+  - Ordered: `1. item`
+- **Code Blocks:** Standard markdown triple backticks. Content inside not validated.
+
+### Example: Subsections & Content
+
+```
+INPUT
+  FORMAT: json
+  SOURCE
+    api_endpoint
+    cache_ttl=3600
+  VALIDATION
+    - Required fields: id, name, price
+    - Optional fields: description, tags
+  SCHEMA
+    ```json
+    {
+      "id": "string",
+      "name": "string",
+      "price": "number"
+    }
+    ```
+```
+
+---
+
+## 5. Logic & Iteration Operators
+
+These are strictly restricted to `REASONING`, `STEPS`, or `ALGORITHM` sections.
+
+### 5.1 Comparison & Boolean
+
+| Operator | Syntax | Description |
+|----------|--------|-------------|
+| **Equal** | `EQUAL` or `==` | Check for equality. |
+| **Not Equal** | `NOT EQUAL` or `!=` or `<>` | Check for inequality. |
+| **Logical NOT** | `NOT` or `!` | Negates a boolean. |
+| **Logical AND** | `AND` or `&&` | Both conditions must be true. |
+| **Logical OR** | `OR` or `||` | At least one condition must be true. |
+| **Less Than** | `LESS THAN` or `LT` or `<` | First quantity less than second. |
+| **Less Than or Equal** | `LESS THAN OR EQUAL` or `LTE` or `<=` | First ≤ second. |
+| **Greater Than** | `GREATER THAN` or `GT` or `>` | First > second. |
+| **Greater Than or Equal** | `GREATER THAN OR EQUAL` or `GTE` or `>=` | First ≥ second. |
+
+### Example: Comparison & Boolean
+
+```
+REASONING
+  IF score >= 90 THEN grade="A"
+  ELSE IF score >= 80 AND score < 90 THEN grade="B"
+  ELSE IF score >= 70 AND score < 80 THEN grade="C"
+  ELSE grade="F"
+  
+  IF user_age < 18 AND NOT parental_consent THEN block_access=true
+```
+
+### 5.2 Bitwise Operators
+
+| Operator | Syntax | Type | Description |
+|----------|--------|------|-------------|
+| **Bitwise NOT** | `~` | Unary | Inverts all bits. |
+| **Bitwise AND** | `&` | Binary | 1 if both bits are 1. |
+| **Bitwise OR** | `|` | Binary | 1 if at least one bit is 1. |
+| **Bitwise XOR** | `^` | Binary | 1 if bits are different. |
+| **Left Shift** | `<<` | Binary | Shifts bits left. |
+| **Right Shift** | `>>` | Binary | Shifts right, preserves sign. |
+| **Zero-Fill Right Shift** | `>>>` | Binary | Shifts right, fills zeros. |
+| **Compound** | `…=` | Binary | `&=`, `|=`, `^=`, `<<=`, `>>=`, `>>>=` |
+
+### Example: Bitwise Operators
+
+```
+REASONING
+  permissions = READ | WRITE | EXECUTE
+  IF (flags & EXECUTE) == EXECUTE THEN is_executable=true
+  mask = ~WRITE
+  clean_flags = flags & mask
+```
+
+### 5.3 Calculus Operators
+
+| Operator | Syntax | Description |
+|----------|--------|-------------|
+| **Assignment** | `=` | Assign a variable. |
+| **Addition** | `+` | Add two variables or scalars. |
+| **Subtraction** | `-` | Subtract two variables or scalars. |
+| **Multiplication** | `*` | Multiply two variables or scalars. |
+| **Division** | `/` | Divide two variables or scalars. |
+| **Iteration** | `++` or `--` | Increment or decrement. |
+| **Compound** | `…=` | `+=`, `-=`, `*=`, `/=` |
+
+### Example: Calculus Operators
+
+```
+REASONING
+  total = 0
+  FOR score IN scores
+    total += score
+  average = total / count
+  counter++
+  
+  price_with_tax = base_price * 1.08
+```
+
+### 5.4 Logic & Iteration
+
+| Operator | Syntax | Description |
+|----------|--------|-------------|
+| **Branch** | `IF...THEN...ELSE` | Conditional branching. |
+| **State Loop** | `WHILE condition` | Repeat while true. |
+| **Key Loop** | `FOR key IN object` | Iterate over object keys. |
+| **Value Loop** | `FOR item OF list` | Iterate over list values. |
+| **Item Loop** | `FOREACH item => logic` | Short for `FOR item OF list`. |
+| **Transform** | `MAP list AS item => logic` | 1-to-1 mapping. |
+| **Aggregate** | `REDUCE list AS item, acc => logic INITIAL val` | Many-to-1 accumulation. |
+
+> **Note on REDUCE:** `AS` must be followed by two variables (item, accumulator). `INITIAL` is optional; defaults to `0`, `false`, `[]`, or `{}` depending on context.
+
+### Example: Logic & Iteration
+
+```
+REASONING
+  # Branching
+  IF temperature > 100
+  THEN status="boiling"
+  ELSE IF temperature < 0
+  THEN status="frozen"
+  ELSE status="normal"
+
+  # Value loop
+  total = 0
+  FOR price IN prices
+    total += price
+
+  # Key loop
+  FOR key IN user_profile
+    output += key + ": " + user_profile[key]
+
+  # Transform (MAP)
+  MAP prices AS p => p * 1.1
+
+  # FOREACH shorthand
+  FOREACH item => process(item)
+
+  # Aggregate (REDUCE)
+  REDUCE scores AS s, sum => sum + s INITIAL 0
+
+  # Complex REDUCE
+  REDUCE words AS w, longest => IF len(w) > len(longest) THEN w ELSE longest INITIAL ""
+```
+
+---
+
+## 6. The FLOW Section
+
+The `FLOW` section defines a high-level pipeline using the **Pipe Operator** `|>`.
+
+- **Meaning:** `a |> b` means `a` then / feeds into `b`
+- **Constraint:** `|>` is strictly forbidden in logic blocks.
+- **Variables:** `$var` references data flowing through pipeline.
+
+### Example: Basic Flow
+
+```
+FLOW
+  $user_input |> validate |> sanitize |> summarize |> output
+```
+
+### Example: Named Pipelines
+
+```
+FLOW
+  default: $query |> embed |> search |> rank |> generate
+  quick: $query |> cache_lookup |> generate
+  fallback: $query |> rewrite |> search |> generate
+```
+
+### Example: Flow with Conditions
+
+```
+FLOW
+  $document |> chunk |> embed |> vector_search
+
+REASONING
+  IF results.count > 0 THEN FLOW=generate
+  ELSE FLOW=fallback
+
+FLOW:generate
+  $results |> rerank |> llm_generate |> validate
+
+FLOW:fallback
+  $query |> web_search |> scrape |> llm_generate
+```
+
+### Example: Real-World RAG Pipeline
+
+```
+TASK
+  Answer user question using provided documents
+
+ROLE
+  RAG assistant
+
+INPUT
+  FORMAT: text
+  query=$question
+  documents=$docs
+
+FLOW
+  $question |> embed |> search_top_k($documents, k=5) |> rerank |> generate_answer |> verify_grounding
+
+OUTPUT
+  FORMAT: markdown
+  GROUNDING: citations_required
+```
+
+---
+
+## 7. Operator Scope Rules
+
+| Operator Type | Appears | Sections |
+|---------------|---------|----------|
+| Comparison & Boolean | only | `REASONING`, `STEPS`, or `ALGORITHM` |
+| Bitwise Operators | only | `REASONING`, `STEPS`, or `ALGORITHM` |
+| Calculus Operators | mostly | `REASONING`, `STEPS`, or `ALGORITHM`* |
+| Logic & Iteration Operators | only | `REASONING`, `STEPS`, or `ALGORITHM` |
+| Flow Operators (`|>`) | only | `FLOW` |
+
+*\*Except `-`, `*`, `/` which may appear in natural language formatting*
+
+### Example: Scope Violation (Invalid)
+
+```
+FLOW
+  IF score > 90 |> validate   # ERROR: IF not allowed in FLOW
+  $data |> MAP x => x*2       # ERROR: MAP not allowed in FLOW
+```
+
+### Example: Scope Correct (Valid)
+
+```
+REASONING
+  IF score > 90 THEN priority="high"   # OK
+  
+FLOW
+  $data |> validate |> transform |> output   # OK
+```
+
+---
+
+## 8. Validation Rules
+
+| Rule | Requirement | Violation |
+|------|-------------|-----------|
+| Operator Scope Rules | appears only in allowed sections | Error |
+| Section Header | ALL_CAPS, no trailing colon | Error |
+| Variable | `key=value`, no spaces around `=` | Warning |
+| Separator | `---` alone on its own line | Error |
+| Indentation | consistent (2 or 4 spaces) | Warning |
+| Required Sections | `TASK`/`GOAL`, `ROLE`, `INPUT`, `OUTPUT` present | Error |
+| `=>` usage | only in `MAP`/`REDUCE`/`FOREACH` | Error |
+| `|>` usage | only in `FLOW` section | Error |
+
+### Example: Validation Failures
+
+```
+task                     # ERROR: must be TASK (ALL_CAPS)
+  Do something
+
+---
+
+ROLE
+  Assistant
+
+INPUT
+  FORMAT=json            # WARNING: should be FORMAT: json or key=value?
+
+OUTPUT
+  FORMAT: text
+
+REASONING
+  FOREACH item -> process   # ERROR: use => not ->
+```
+
+### Example: Valid Document
+
+```
+TASK
+  Validate user input
+
+ROLE
+  Validator
+
+INPUT
+  FORMAT: json
+
+REASONING
+  FOREACH field IN required_fields
+    IF input[field] IS missing THEN error=true
+
+OUTPUT
+  FORMAT: json
+```
+
+---
+
+## 9. Full End-to-End Examples
+
+### Example 1: Sentiment Analysis with Scoring
+
+```
+TASK
+  Analyze customer review sentiment and assign confidence score
+
+ROLE
+  Sentiment analyst
+  style=quantitative
+
+INPUT
+  FORMAT: text
+  SOURCE: user_query
+  review=$text
+
+REASONING
+  positive_words = ["love", "great", "amazing", "perfect"]
+  negative_words = ["hate", "bad", "terrible", "awful"]
+  
+  positive_count = 0
+  negative_count = 0
+  
+  FOR word IN split($review)
+    IF word IN positive_words THEN positive_count++
+    ELSE IF word IN negative_words THEN negative_count++
+  
+  net_score = positive_count - negative_count
+  
+  IF net_score > 2 THEN sentiment="positive" confidence=0.9
+  ELSE IF net_score < -2 THEN sentiment="negative" confidence=0.9
+  ELSE IF net_score > 0 THEN sentiment="positive" confidence=0.6
+  ELSE IF net_score < 0 THEN sentiment="negative" confidence=0.6
+  ELSE sentiment="neutral" confidence=0.8
+
+OUTPUT
+  FORMAT: json
+  SCHEMA
+    ```json
+    {
+      "sentiment": "string",
+      "confidence": "number",
+      "positive_score": "number",
+      "negative_score": "number"
+    }
+    ```
+```
+
+### Example 2: Multi-Step RAG with Fallback
+
+```
+TASK
+  Answer user question using knowledge base, fallback to web search if needed
+
+ROLE
+  Research assistant
+
+INPUT
+  FORMAT: text
+  query=$question
+  kb=$documents
+
+FLOW
+  default: $query |> embed |> search_kb(kb=$documents, k=3) |> check_relevance
+  fallback: $query |> web_search |> scrape |> extract_answer
+
+REASONING
+  IF relevance_score >= 0.7
+  THEN answer = generate_from_kb($results)
+  ELSE answer = execute_flow("fallback")
+
+OUTPUT
+  FORMAT: markdown
+  CITATIONS: required
+
+CONSTRAINTS
+  - If confidence < 0.6, state "I'm not certain"
+  - Always cite sources
+```
+
+### Example 3: Data Processing Pipeline
+
+```
+TASK
+  Process sales data: clean, aggregate, and generate report
+
+ROLE
+  Data analyst
+
+INPUT
+  FORMAT: csv
+  SOURCE: sales_data.csv
+  date_range=last_30_days
+
+REASONING
+  MAP records AS r => r.price * r.quantity
+  
+  REDUCE totals AS t, sum => sum + t INITIAL 0
+  
+  average = total / count
+  
+  IF average > target THEN performance="above_expected"
+  ELSE performance="needs_improvement"
+
+FLOW
+  $raw_data |> validate |> clean |> aggregate |> format_report
+
+OUTPUT
+  FORMAT: markdown
+  SECTIONS
+    - total_sales
+    - average_order_value
+    - performance_rating
+```
+
+---
+
+## 10. File Extension & MIME Type
+
+- **Extension:** `.ppl`
+- **MIME type:** `text/x-ppl`
+
+---
+
+## 11. Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 2.0 | 2026-04-03 | Added comprehensive examples throughout. Fixed typos. Finalized operator scope rules. |
+
+---
+
+## 12. Copyright & License
+
+### Copyright
+Copyright (c) 2026 PPL Specification Authors. All rights reserved.
+
+### License
+Licensed under the **Apache License, Version 2.0** (the "License"); you may not use this file except in compliance with the License.
