@@ -151,12 +151,19 @@ ppl run prompt.ppl --model gpt-4
 ## Core Sections
 
 TASK / GOAL - Required. Primary objective. One sentence.
+
 ROLE - Required. Persona for the LLM.
+
 INPUT - Required. Data and format specification.
+
 OUTPUT - Required. Expected structure and schema.
+
 REASONING - Recommended. Logic with IF/THEN/ELSE, FOR, MAP, REDUCE.
+
 FLOW - Recommended. Pipeline with |> operator.
+
 CONSTRAINTS - Optional. Hard rules.
+
 GROUNDING - Optional. Source of truth.
 
 ---
@@ -164,10 +171,15 @@ GROUNDING - Optional. Source of truth.
 ## Logic Operators (for REASONING)
 
 IF...THEN...ELSE - Conditional branching
+
 FOR...IN - Iterate over collection
+
 FOREACH item => - Shorthand iteration
+
 MAP list AS x => - Transform each element
+
 REDUCE list AS x, acc => - Aggregate with accumulator
+
 WHILE - Loop while condition true
 
 ---
