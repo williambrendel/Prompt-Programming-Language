@@ -38,10 +38,13 @@ Prompts today are unstructured English. LLMs guess.
 ## Quick Example
 
 Unstructured prompt:
+```
 "Tell me if this contract clause is risky: Payment due 30 days after delivery, but buyer can delay approval indefinitely."
+```
 
 PPL version:
 
+```
 TASK
   Analyze contract clause for risk level
 
@@ -62,7 +65,8 @@ OUTPUT
   SCHEMA
     { "risk": "string", "reason": "string" }
 
-Result: The LLM produces exactly {"risk": "high", "reason": "..."}. No extra text. No hallucination.
+  RESULT: The LLM produces exactly {"risk": "high", "reason": "..."}. No extra text. No hallucination.
+```
 
 ---
 
