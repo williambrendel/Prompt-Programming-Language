@@ -75,7 +75,9 @@ REASONING
 OUTPUT
   FORMAT: json
   SCHEMA
-    { "risk": "string", "reason": "string" }
+    ```json
+      { "risk": "string", "reason": "string" }
+    ```
   VALIDATION:
   - No extra text
   - fully json parsable
