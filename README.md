@@ -4,6 +4,8 @@
 
 **PPL** is a structured domain-specific language for writing LLM prompts that are deterministic, token-efficient, and resistant to hallucinations.
 
+Full spec [here](SPEC.md).
+
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-2.0-green)](SPEC.md)
 
