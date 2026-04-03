@@ -224,18 +224,17 @@ See SPEC.md for the complete language specification.
 1. Fork the repo
 2. Create a feature branch
 3. Submit a PR
+Original Author: William Brendel
 
 ---
 
-## License
+## Copyright & License
 
-Apache 2.0
+### Copyright
+Copyright (c) 2026 PPL Specification Authors. All rights reserved.
 
----
-
-## Author
-
-William Brendel
+### License
+Licensed under the **Apache License, Version 2.0** (the "License"); you may not use this file except in compliance with the License.
 
 ---
 
