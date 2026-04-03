@@ -1,6 +1,6 @@
 # PPL (Prompt Programming Language) Specification v2.0
 
-> Pronounced: /ˈpip(ə)l/ like *people*
+> Pronounced: /ˈpip(ə)l/ like "people"
 > Extension: `.ppl`
 > MIME type: `text/x-ppl`
 
@@ -38,19 +38,32 @@ PPL separates:
 TASK
   Classify customer feedback as positive, neutral, or negative
 
+---
+
 ROLE
   Sentiment analyst
   tone=neutral
+
+---
 
 INPUT
   FORMAT: text
   SOURCE: user_query
   max_length=1000
 
+---
+
+FLOW
+  $user_query |> classify_sentiment |> format_output
+
+---
+
 REASONING
   IF feedback CONTAINS "love|great|amazing" THEN sentiment=positive
   ELSE IF feedback CONTAINS "hate|bad|terrible" THEN sentiment=negative
   ELSE sentiment=neutral
+
+---
 
 OUTPUT
   FORMAT: json
@@ -68,7 +81,7 @@ OUTPUT
 - **Line endings:** LF (`\n`) or CRLF (`\r\n`)
 - **Indentation:** 2 or 4 spaces (consistent). No tabs.
 - **Empty lines:** Allowed anywhere, ignored by validator.
-- **Section Separator:** `---` on its own line. Blank lines around it optional. Cannot be first or last line.
+- **Section Separator:** `---` on its own line. Blank lines around it optional. Top-level sections MUST be separated by this. Cannot be first or last line.
 - **Comments:** Start with `#`. Ignored by validator.
 
 ### Example: Basic Syntax
@@ -83,6 +96,8 @@ TASK
 ROLE
   Data analyst
 
+---
+
 INPUT
   FORMAT: csv
   SOURCE: sales_data
@@ -92,7 +107,7 @@ INPUT
 
 ## 3. Sections
 
-Sections are defined by `ALL_CAPS` headers at the start of a line.
+Sections are defined by `ALL_CAPS` headers at the start of a line. Top-level sections MUST be separated by `---`.
 
 ### 3.1 Required Sections
 
@@ -109,13 +124,19 @@ Sections are defined by `ALL_CAPS` headers at the start of a line.
 TASK
   Translate English to French
 
+---
+
 ROLE
   Professional translator
   style=formal
 
+---
+
 INPUT
   FORMAT: text
   SOURCE: user_query
+
+---
 
 OUTPUT
   FORMAT: text
@@ -135,19 +156,29 @@ OUTPUT
 TASK
   Answer customer question from knowledge base
 
+---
+
 ROLE
   Support agent
 
+---
+
 INPUT
   FORMAT: text
+
+---
+
+FLOW
+  $question |> search_kb |> rank_results |> generate_answer
+
+---
 
 REASONING
   IF question CONTAINS "return policy" THEN search returns_doc
   ELSE IF question CONTAINS "shipping" THEN search shipping_doc
   ELSE search general_faq
 
-FLOW
-  $question |> search_kb |> rank_results |> generate_answer
+---
 
 OUTPUT
   FORMAT: markdown
@@ -168,21 +199,38 @@ OUTPUT
 TASK
   Explain quantum computing
 
+---
+
 ROLE
   Physics teacher
+
+---
+
+INPUT
+  FORMAT: none
+
+---
 
 AUDIENCE
   10-year-old children
 
+---
+
 TONE
   playful, use analogies
+
+---
 
 CONSTRAINTS
   - No math equations
   - Max 200 words
 
+---
+
 GROUNDING
   provided_text_only
+
+---
 
 OUTPUT
   FORMAT: text
@@ -198,6 +246,7 @@ Indentation defines hierarchy.
   - *With inline value:* `FORMAT: json`
   - *Without inline value:* `FORMAT`
 - **Variable:** `key=value` (e.g., `max_tokens=500`). No spaces around `=`.
+- **Definition:** Starts with `@`, like `@varname: description`. Can be referred to in logic block later.
 - **Lists:**
   - Unordered: `- item`
   - Ordered: `1. item`
@@ -206,10 +255,20 @@ Indentation defines hierarchy.
 ### Example: Subsections & Content
 
 ```
+TASK
+  Fetch API data
+
+---
+
+ROLE
+  System Integrator
+
+---
+
 INPUT
   FORMAT: json
   SOURCE
-    api_endpoint
+    @api_endpoint: GET/POST/... endpoint for the api
     cache_ttl=3600
   VALIDATION
     - Required fields: id, name, price
@@ -222,6 +281,11 @@ INPUT
       "price": "number"
     }
     ```
+
+---
+
+OUTPUT
+  FORMAT: json
 ```
 
 ---
@@ -252,7 +316,7 @@ REASONING
   ELSE IF score >= 80 AND score < 90 THEN grade="B"
   ELSE IF score >= 70 AND score < 80 THEN grade="C"
   ELSE grade="F"
-  
+
   IF user_age < 18 AND NOT parental_consent THEN block_access=true
 ```
 
@@ -300,7 +364,7 @@ REASONING
     total += score
   average = total / count
   counter++
-  
+
   price_with_tax = base_price * 1.08
 ```
 
@@ -358,40 +422,40 @@ REASONING
 The `FLOW` section defines a high-level pipeline using the **Pipe Operator** `|>`.
 
 - **Meaning:** `a |> b` means `a` then / feeds into `b`
-- **Constraint:** `|>` is strictly forbidden in logic blocks.
 - **Variables:** `$var` references data flowing through pipeline.
+- **Constraint:** 
+  - `|>` is strictly forbidden in logic blocks.
+  - A flow always starts with at least one variable and ends with at least one variable
+
 
 ### Example: Basic Flow
 
 ```
 FLOW
-  $user_input |> validate |> sanitize |> summarize |> output
+  $user_input |> validate |> sanitize |> summarize |> $output
 ```
 
 ### Example: Named Pipelines
 
 ```
 FLOW
-  default: $query |> embed |> search |> rank |> generate
-  quick: $query |> cache_lookup |> generate
-  fallback: $query |> rewrite |> search |> generate
+  default: $query |> embed |> search |> rank |> generate |> $output
+  quick: $query |> cache_lookup |> generate |> $output
+  fallback: $query |> rewrite |> search |> generate |> $output
 ```
 
 ### Example: Flow with Conditions
 
 ```
 FLOW
-  $document |> chunk |> embed |> vector_search
+  default: $query |> embed |> search |> rank |> generate |> $output
+  fallback: $query |> rewrite |> search |> generate |> $output
+
+---
 
 REASONING
-  IF results.count > 0 THEN FLOW=generate
+  IF results.count > 0 THEN FLOW=default
   ELSE FLOW=fallback
-
-FLOW:generate
-  $results |> rerank |> llm_generate |> validate
-
-FLOW:fallback
-  $query |> web_search |> scrape |> llm_generate
 ```
 
 ### Example: Real-World RAG Pipeline
@@ -400,16 +464,24 @@ FLOW:fallback
 TASK
   Answer user question using provided documents
 
+---
+
 ROLE
   RAG assistant
+
+---
 
 INPUT
   FORMAT: text
   query=$question
   documents=$docs
 
+---
+
 FLOW
-  $question |> embed |> search_top_k($documents, k=5) |> rerank |> generate_answer |> verify_grounding
+  $question |> embed |> search_top_k($documents, k=5) |> rerank |> generate_answer |> verify_grounding |> $output
+
+---
 
 OUTPUT
   FORMAT: markdown
@@ -435,7 +507,7 @@ OUTPUT
 ```
 FLOW
   IF score > 90 |> validate   # ERROR: IF not allowed in FLOW
-  $data |> MAP x => x*2       # ERROR: MAP not allowed in FLOW
+  $data |> MAP x => x*2        # ERROR: MAP not allowed in FLOW
 ```
 
 ### Example: Scope Correct (Valid)
@@ -443,9 +515,11 @@ FLOW
 ```
 REASONING
   IF score > 90 THEN priority="high"   # OK
-  
+
+---
+
 FLOW
-  $data |> validate |> transform |> output   # OK
+  $data |> validate |> transform |> $output   # OK
 ```
 
 ---
@@ -457,11 +531,12 @@ FLOW
 | Operator Scope Rules | appears only in allowed sections | Error |
 | Section Header | ALL_CAPS, no trailing colon | Error |
 | Variable | `key=value`, no spaces around `=` | Warning |
-| Separator | `---` alone on its own line | Error |
+| Separator | `---` alone on its own line between top sections | Error |
 | Indentation | consistent (2 or 4 spaces) | Warning |
 | Required Sections | `TASK`/`GOAL`, `ROLE`, `INPUT`, `OUTPUT` present | Error |
 | `=>` usage | only in `MAP`/`REDUCE`/`FOREACH` | Error |
-| `|>` usage | only in `FLOW` section | Error |
+| `\|>` usage | only in `FLOW` section | Error |
+| `$` usage  | starts and ends with at least one $variable | Error |
 
 ### Example: Validation Failures
 
@@ -474,11 +549,17 @@ task                     # ERROR: must be TASK (ALL_CAPS)
 ROLE
   Assistant
 
+---
+
 INPUT
   FORMAT=json            # WARNING: should be FORMAT: json or key=value?
 
+---
+
 OUTPUT
   FORMAT: text
+
+---
 
 REASONING
   FOREACH item -> process   # ERROR: use => not ->
@@ -490,15 +571,23 @@ REASONING
 TASK
   Validate user input
 
+---
+
 ROLE
   Validator
+
+---
 
 INPUT
   FORMAT: json
 
+---
+
 REASONING
   FOREACH field IN required_fields
     IF input[field] IS missing THEN error=true
+
+---
 
 OUTPUT
   FORMAT: json
@@ -514,33 +603,46 @@ OUTPUT
 TASK
   Analyze customer review sentiment and assign confidence score
 
+---
+
 ROLE
   Sentiment analyst
   style=quantitative
+
+---
 
 INPUT
   FORMAT: text
   SOURCE: user_query
   review=$text
 
+---
+
+FLOW
+  $review |> tokenize |> analyze_sentiment |> score_confidence |> output
+
+---
+
 REASONING
   positive_words = ["love", "great", "amazing", "perfect"]
   negative_words = ["hate", "bad", "terrible", "awful"]
-  
+
   positive_count = 0
   negative_count = 0
-  
+
   FOR word IN split($review)
     IF word IN positive_words THEN positive_count++
     ELSE IF word IN negative_words THEN negative_count++
-  
+
   net_score = positive_count - negative_count
-  
+
   IF net_score > 2 THEN sentiment="positive" confidence=0.9
   ELSE IF net_score < -2 THEN sentiment="negative" confidence=0.9
   ELSE IF net_score > 0 THEN sentiment="positive" confidence=0.6
   ELSE IF net_score < 0 THEN sentiment="negative" confidence=0.6
   ELSE sentiment="neutral" confidence=0.8
+
+---
 
 OUTPUT
   FORMAT: json
@@ -561,26 +663,38 @@ OUTPUT
 TASK
   Answer user question using knowledge base, fallback to web search if needed
 
+---
+
 ROLE
   Research assistant
+
+---
 
 INPUT
   FORMAT: text
   query=$question
   kb=$documents
 
+---
+
 FLOW
   default: $query |> embed |> search_kb(kb=$documents, k=3) |> check_relevance
   fallback: $query |> web_search |> scrape |> extract_answer
+
+---
 
 REASONING
   IF relevance_score >= 0.7
   THEN answer = generate_from_kb($results)
   ELSE answer = execute_flow("fallback")
 
+---
+
 OUTPUT
   FORMAT: markdown
   CITATIONS: required
+
+---
 
 CONSTRAINTS
   - If confidence < 0.6, state "I'm not certain"
@@ -593,26 +707,36 @@ CONSTRAINTS
 TASK
   Process sales data: clean, aggregate, and generate report
 
+---
+
 ROLE
   Data analyst
+
+---
 
 INPUT
   FORMAT: csv
   SOURCE: sales_data.csv
   date_range=last_30_days
 
-REASONING
-  MAP records AS r => r.price * r.quantity
-  
-  REDUCE totals AS t, sum => sum + t INITIAL 0
-  
-  average = total / count
-  
-  IF average > target THEN performance="above_expected"
-  ELSE performance="needs_improvement"
+---
 
 FLOW
   $raw_data |> validate |> clean |> aggregate |> format_report
+
+---
+
+REASONING
+  MAP records AS r => r.price * r.quantity
+
+  REDUCE totals AS t, sum => sum + t INITIAL 0
+
+  average = total / count
+
+  IF average > target THEN performance="above_expected"
+  ELSE performance="needs_improvement"
+
+---
 
 OUTPUT
   FORMAT: markdown
@@ -624,22 +748,72 @@ OUTPUT
 
 ---
 
-## 10. File Extension & MIME Type
+## 10. Template
+
+```
+TASK
+  Your task
+
+---
+
+ROLE
+  The persona performing the task
+
+---
+
+INPUT
+  FORMAT: input format
+  SCHEMA: input schema if not plain text or known schema like csv
+  VALIDATION
+  - Rules to validate the input, especially if the schema is provided, like required fields
+
+...
+
+---
+
+FLOW
+  Flow block describing how the task is achieved, starting from the input, like: input |> ... |> output
+
+...
+
+---
+
+REASONING
+  Reasoning block with reasoning operators. Subsections needed for each part of the FLOW, if FLOW is specified
+  RULES
+  - list of rules to ground the reasoning
+  CONSTRAINTS
+  - list of constraints like constraint_1=value
+
+...
+
+---
+
+OUTPUT
+  FORMAT: output format
+  SCHEMA: output schema if not plain text or known schema like csv
+  VALIDATION
+  - Rules to validate the output, especially if the schema is provided, like required fields
+```
+
+---
+
+## 11. File Extension & MIME Type
 
 - **Extension:** `.ppl`
 - **MIME type:** `text/x-ppl`
 
 ---
 
-## 11. Version History
+## 12. Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 2.0 | 2026-04-03 | Added comprehensive examples throughout. Fixed typos. Finalized operator scope rules. |
+| 2.0 | 2026-04-03 | Added comprehensive examples throughout. Fixed typos. Finalized operator scope rules. Added @ syntax. Added template. Enforced --- between top sections. |
 
 ---
 
-## 12. Copyright & License
+## 13. Copyright & License
 
 ### Copyright
 Copyright (c) 2026 PPL Specification Authors. All rights reserved.

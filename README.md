@@ -48,30 +48,43 @@ PPL version:
 TASK
   Analyze contract clause for risk level
 
+---
+
 ROLE
   Legal risk analyst
+  
+---
 
 INPUT
   FORMAT: text
-  clause=$clause
+  $clause: input, a contract clause
+  EXAMPLE: "Payment due 30 days after delivery, but buyer can delay approval indefinitely."
+  
+---
 
 REASONING
-  IF clause CONTAINS "unlimited delay" THEN risk=high
-  ELSE IF clause CONTAINS "net 90" THEN risk=medium
+  IF $clause CONTAINS "unlimited delay" THEN risk=high
+  ELSE IF $clause CONTAINS "net 90" THEN risk=medium
   ELSE risk=low
+
+  RULES
+  - No hallucination
+  
+---
 
 OUTPUT
   FORMAT: json
   SCHEMA
     { "risk": "string", "reason": "string" }
-
-  RESULT: The LLM produces exactly {"risk": "high", "reason": "..."}. No extra text. No hallucination.
+  VALIDATION:
+  - No extra text
+  - fully json parsable
 ```
 
 ---
 
 ## Syntax at a Glance
-
+```
 TASK
   Do something
 
@@ -81,11 +94,20 @@ ROLE
   Expert
   tone=formal
 
+---
+
 INPUT
   FORMAT: json
   SOURCE
     - field1
     - field2
+
+---
+
+FLOW
+  $input |> validate |> transform |> $output
+
+---
 
 REASONING
   IF score > 90 THEN grade="A"
@@ -94,11 +116,11 @@ REASONING
   MAP prices AS p => p * 1.1
   REDUCE scores AS s, sum => sum + s INITIAL 0
 
-FLOW
-  $input |> validate |> transform |> output
+---
 
 OUTPUT
   FORMAT: markdown
+```
 
 ---
 
@@ -151,13 +173,13 @@ WHILE - Loop while condition true
 Use |> to chain operations:
 
 FLOW
-  $query |> embed |> search_kb |> rerank |> generate |> validate
+  $query |> embed |> search_kb |> rerank |> generate |> validate |> $output
 
 Named pipelines:
 
 FLOW
-  default: $input |> validate |> process
-  fallback: $input |> cache_lookup |> generate
+  default: $input |> validate |> process |> $output
+  fallback: $input |> cache_lookup |> generate |> $output
 
 ---
 
