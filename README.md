@@ -174,14 +174,18 @@ WHILE - Loop while condition true
 
 Use |> to chain operations:
 
+```
 FLOW
   $query |> embed |> search_kb |> rerank |> generate |> validate |> $output
+```
 
 Named pipelines:
 
+```
 FLOW
   default: $input |> validate |> process |> $output
   fallback: $input |> cache_lookup |> generate |> $output
+```
 
 ---
 
