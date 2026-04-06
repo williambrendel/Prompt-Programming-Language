@@ -4,8 +4,8 @@ const SEP_RE = /^\-\-\-+$/;
 const SPECIAL_CHARS_RE = /^[^a-zA-Z0-9]+$/;
 
 /**
- * @file checkSections.js
- * @module ppl/utilities/validate/checkSections
+ * @file checkSectionStructure.js
+ * @module ppl/utilities/validate/checkSectionStructure
  * @description
  * Validates the macro-structural organization of a document using 
  * section titles and infix separators.
@@ -35,7 +35,7 @@ const SPECIAL_CHARS_RE = /^[^a-zA-Z0-9]+$/;
  * - **State Tracking**: Maintains `previousType` (title/content/separator) 
  *   and `previousSep` to validate document structure and separator consistency.
  *
- * @function checkSections
+ * @function checkSectionStructure
  *
  * @param {string} content - Raw string content.
  * @param {Array} [feedback=[]] - Error/Warning collector.
@@ -119,7 +119,7 @@ const SPECIAL_CHARS_RE = /^[^a-zA-Z0-9]+$/;
  * **Error:** `Prompt cannot start with a separator` at line 1
  *
  */
-const checkSections = (content, feedback) => {
+const checkSectionStructure = (content, feedback) => {
   // Normalize input.
   feedback || (feedback = []);
   content || (content = "");
@@ -229,6 +229,6 @@ const checkSections = (content, feedback) => {
  * @ignore
  * Default export with freezing.
  */
-module.exports = Object.freeze(Object.defineProperty(checkSections, "checkSections", {
-  value: checkSections
+module.exports = Object.freeze(Object.defineProperty(checkSectionStructure, "checkSectionStructure", {
+  value: checkSectionStructure
 }));

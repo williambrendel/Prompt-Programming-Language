@@ -1,8 +1,8 @@
 "use strict";
 
-const checkSections = require("../../../src/utilities/validate/checkSections");
+const checkSectionStructure = require("../../../src/utilities/validate/checkSectionStructure");
 
-describe("checkSections", () => {
+describe("checkSectionStructure", () => {
 
   // ── Valid documents ─────────────────────────────────────────────────────
 
@@ -28,7 +28,7 @@ TASK
 OUTPUT
   A list of issues found.
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       expect(errors).toHaveLength(0);
     });
@@ -53,7 +53,7 @@ GOAL
 OUTPUT
   A list of issues found.
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       expect(errors).toHaveLength(0);
     });
@@ -80,7 +80,7 @@ TASK
 OUTPUT
   Output content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       expect(errors).toHaveLength(0);
     });
@@ -97,7 +97,7 @@ TASK
 ---
 OUTPUT
   Output`;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       expect(errors).toHaveLength(0);
     });
@@ -109,7 +109,7 @@ OUTPUT
   describe("empty or useless prompt errors", () => {
 
     test("reports error for completely empty content", () => {
-      const feedback = checkSections("");
+      const feedback = checkSectionStructure("");
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -124,7 +124,7 @@ OUTPUT
 
 
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -138,7 +138,7 @@ OUTPUT
 # Comment line 2
 # Another comment
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -153,7 +153,7 @@ OUTPUT
 # Another comment
 
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -174,7 +174,7 @@ ROLE
 INPUT
   Missing separator above
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -190,7 +190,7 @@ ROLE
 TASK
   Second section content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -213,7 +213,7 @@ ROLE
 INPUT
   Content here
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -233,7 +233,7 @@ ROLE
 INPUT
   Content here
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -250,7 +250,7 @@ ROLE
 INPUT
   Content here
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -270,7 +270,7 @@ ROLE
   Content
 ---
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -287,7 +287,7 @@ ROLE
 
 
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -309,7 +309,7 @@ Content not indented
 INPUT
   Properly indented
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const warnings = feedback.filter(f => f.type === "warning");
       
       expect(warnings.some(w => 
@@ -327,7 +327,7 @@ Second line not indented
 INPUT
   Indented content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const warnings = feedback.filter(f => f.type === "warning");
       
       expect(warnings.length).toBe(2);
@@ -343,7 +343,7 @@ Not indented line
 INPUT
   Content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const warnings = feedback.filter(f => f.type === "warning");
       
       expect(warnings.length).toBe(1);
@@ -364,7 +364,7 @@ Role
 INPUT
   Input content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -380,7 +380,7 @@ RoleName
 INPUT
   Input content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -396,7 +396,7 @@ ROLE1
 INPUT
   Input
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => e.message.includes("ROLE"))).toBe(true); // Missing ROLE section
@@ -417,7 +417,7 @@ ROLE
 ROLE
   Duplicate content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -437,7 +437,7 @@ ROLE
 ROLE
   Third
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.filter(e => e.message.includes("already exists")).length).toBe(2);
@@ -459,7 +459,7 @@ ROLE
 INPUT
   More content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -476,7 +476,7 @@ ROLE
 INPUT
   More content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -492,7 +492,7 @@ ROLE
 INPUT
   More content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -511,7 +511,7 @@ INPUT
 TASK
   Content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const warnings = feedback.filter(f => f.type === "warning");
       
       expect(warnings.some(w => 
@@ -530,7 +530,7 @@ INPUT
 TASK
   Content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       const warnings = feedback.filter(f => f.type === "warning");
       
@@ -555,7 +555,7 @@ ROLE
 INPUT
   Content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -573,7 +573,7 @@ ROLE
 INPUT
   Content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       const separatorErrors = errors.filter(e => 
@@ -594,7 +594,7 @@ INPUT
 ROLE
   Content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -608,7 +608,7 @@ ROLE
 ROLE
   Content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -624,7 +624,7 @@ ROLE
 ROLE
   Actual content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -650,7 +650,7 @@ TASK
 OUTPUT
   Output content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -669,7 +669,7 @@ TASK
 OUTPUT
   Output content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -688,7 +688,7 @@ INPUT
 TASK
   Task content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -707,7 +707,7 @@ INPUT
 OUTPUT
   Output content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
@@ -729,7 +729,7 @@ GOAL
 OUTPUT
   Output content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => e.message.includes("TASK"))).toBe(false);
@@ -756,7 +756,7 @@ TASK
 OUTPUT
   Content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       const hasMissingSeparator = errors.some(e => 
@@ -778,7 +778,7 @@ ROLE
 INPUT
   Content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       const hasEmptySection = errors.some(e => 
@@ -806,7 +806,7 @@ INPUT
       
       // This is a raw content string - we need to check the actual line numbers
       // The content above has ROLE on line 1, INPUT on line 4
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       const missingSeparatorError = errors.find(e => 
@@ -826,7 +826,7 @@ ROLE
 ROLE
   Duplicate`;
       
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       
       const duplicateError = errors.find(e => 
@@ -854,7 +854,7 @@ INPUT
 TASK
   Content
 `;
-      const feedback = checkSections(content, existingFeedback);
+      const feedback = checkSectionStructure(content, existingFeedback);
       
       expect(feedback).toBe(existingFeedback);
       expect(feedback.length).toBeGreaterThan(1);
@@ -870,7 +870,7 @@ ROLE
 INPUT
   Content
 `;
-      const feedback = checkSections(content);
+      const feedback = checkSectionStructure(content);
       
       expect(Array.isArray(feedback)).toBe(true);
       expect(feedback.length).toBeGreaterThan(0);
