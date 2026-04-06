@@ -222,7 +222,7 @@ See the examples/ directory:
 
 ## Full Specification
 
-See SPEC.md for the complete language specification.
+See [SPEC.md](SPEC.md) for the complete language specification.
 
 ---
 

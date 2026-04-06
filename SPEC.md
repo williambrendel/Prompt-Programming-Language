@@ -488,6 +488,123 @@ OUTPUT
   GROUNDING: citations_required
 ```
 
+### 6.1 Complete Flow Rules
+
+The `FLOW` section enforces specific syntactic rules to ensure pipelines are valid and unambiguous.
+
+#### 6.1.1 Core Rules
+
+| Rule | Description | Example |
+|------|-------------|---------|
+| **Variables** | Flow must start and end with variables (`$variable`). Intermediate steps can be variables or words. | `$start \|> process \|> $end` |
+| **Word Steps** | Intermediate words must contain only letters, numbers, hyphens, or underscores. | `$data \|> validate-input \|> transform_data \|> $output` |
+| **Variable Steps** | Intermediate steps can also be variables for dynamic dispatch. | `$data \|> $validator \|> $transformer \|> $output` |
+| **Surrounded Values** | The `\|>` operator must have non-empty values on both sides. | ✅ `$a \|> b \|> $c` ❌ `$a \|> \|> $c` |
+
+#### 6.1.2 Multi-Flow Rules
+
+A `FLOW` section can contain multiple pipeline definitions. They follow these rules:
+
+| Scenario | Requirement | Example |
+|----------|-------------|---------|
+| **Single Flow** | No naming required | `$input \|> process \|> $output` |
+| **Multiple Named Flows** | Each flow must have a unique name prefix (`name:`) | `primary: $a \|> b \|> $c`<br>`fallback: $a \|> d \|> $e` |
+| **Compounding Chain** | Unnamed flows allowed if each flow's output variable matches the next flow's input variable | `$word1 \|> $word2`<br>`$word2 \|> $word3` |
+| **Unrelated Multiple Flows** | Must be named (cannot be compounding chain) | ❌ `$a \|> b \|> $c`<br>`$d \|> e \|> $f`<br>✅ `flow1: $a \|> b \|> $c`<br>`flow2: $d \|> e \|> $f` |
+
+#### 6.1.3 Compounding Chain Examples
+
+A **compounding chain** is when flows are connected through shared variables:
+
+```
+# Valid: Compounding chain (no names needed)
+FLOW
+$user_input |> validate |> $validated
+$validated |> enrich |> $enriched
+$enriched |> format |> $output
+```
+This is treated as a **single logical pipeline** split across multiple lines for readability.
+
+#### 6.1.4 Flow Operator Syntax
+
+The **only** valid flow operator is `|>` (pipe). Any other arrow-like symbol is an **error**.
+
+| Valid | Invalid (Error) |
+|-------|-----------------|
+| `\|>` | `->`, `=>`, `~>`, `>` |
+|       | `>>`, `>>>` |
+|       | `→`, `➔`, `➡︎`, `➠`, `➧` |
+|       | `‣`, `▸`, `▶︎`, `▹`, `►` |
+
+**Error Message:** `Invalid flow operator. Use |> (pipe operator) for flow pipelines.`
+
+**Examples:**
+```
+# Invalid - will error
+FLOW
+$input -> process -> $output
+```
+```
+# Valid
+FLOW
+$input |> process |> $output
+```
+
+#### 6.1.5 Invalid Flow Examples
+```
+# Invalid: Multiple unrelated flows without names
+FLOW
+$query |> search |> $results
+$data |> validate |> $clean
+
+# Error: "Multiple flows in FLOW section must be named..."
+```
+
+```
+# Invalid: Flow operator without surrounding values
+FLOW
+$start |> |> $end
+
+# Error: "Flow operators like |> must be surrounded by values"
+```
+
+```
+# Invalid: Flow doesn't start or end with variable
+FLOW
+start |> process |> end
+
+# Error: "Flow must start and end with variables (e.g., $start |> process |> $end)"
+```
+
+```
+# Invalid: Invalid characters in step name
+FLOW
+$input |> process!data |> $output
+
+# Error: 'Invalid flow step "process!data". Steps must be words (letters, numbers, hyphens, underscores) or variables starting with $'
+```
+
+```
+# Invalid - will error
+FLOW
+$input -> process -> $output
+
+# Error: "Invalid flow operator. Use |> (pipe operator) for flow pipelines."
+```
+#### 6.1.6 Flow Section Validation Summary
+
+| What is validated | Valid | Invalid |
+|-------------------|-------|---------|
+| Single unnamed flow | ✅ `$a \|> b \|> $c` | - |
+| Named flow | ✅ `name: $a \|> b \|> $c` | - |
+| Compounding chain (unnamed) | ✅ `$a \|> $b`<br>`$b \|> $c` | - |
+| Multiple unrelated flows | - | ❌ Must be named |
+| Empty `\|>` segment | - | ❌ `$a \|> \|> $c` |
+| Missing start/end variable | - | ❌ `a \|> b \|> c` |
+| Invalid step characters | - | ❌ `$a \|> step! \|> $b` |
+| `\|>` outside FLOW section | - | ❌ In REASONING/TASK |
+| NOT `\|>`, like `-->` invalid flow operator | - | ❌ In FLOW |
+
 ---
 
 ## 7. Operator Scope Rules
@@ -535,6 +652,7 @@ FLOW
 | Indentation | consistent (2 or 4 spaces) | Warning |
 | Required Sections | `TASK`/`GOAL`, `ROLE`, `INPUT`, `OUTPUT` present | Error |
 | `=>` usage | only in `MAP`/`REDUCE`/`FOREACH` | Error |
+| Complete FLOW Rules | Respected | Error |
 | `\|>` usage | only in `FLOW` section | Error |
 | `$` usage  | starts and ends with at least one $variable | Error |
 
