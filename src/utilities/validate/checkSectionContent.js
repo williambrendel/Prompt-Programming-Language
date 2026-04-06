@@ -22,6 +22,16 @@ class VariableRegistry {
     this.references = new Map(); // varName -> Array of { usedIn: string, line: number }
   }
   
+  /**
+   * @function defineVariable
+   * @description Registers a variable definition in a section
+   * @param {string} name - Variable name (with $ prefix)
+   * @param {string} section - Section name (INPUT, OUTPUT, FLOW)
+   * @param {number} line - Line number where defined
+   * @param {boolean} isInput - Whether this is an INPUT variable
+   * @param {boolean} isOutput - Whether this is an OUTPUT variable
+   * @returns {boolean} True if defined successfully, false if duplicate in different section
+   */
   defineVariable(name, section, line, isInput = false, isOutput = false) {
     if (this.variables.has(name)) {
       const existing = this.variables.get(name);
@@ -33,6 +43,13 @@ class VariableRegistry {
     return true;
   }
   
+  /**
+   * @function referenceVariable
+   * @description Registers a variable reference in a section
+   * @param {string} name - Variable name (with $ prefix)
+   * @param {string} section - Section name (OUTPUT, FLOW)
+   * @param {number} line - Line number where referenced
+   */
   referenceVariable(name, section, line) {
     if (!this.references.has(name)) {
       this.references.set(name, []);
@@ -40,6 +57,11 @@ class VariableRegistry {
     this.references.get(name).push({ usedIn: section, line });
   }
   
+  /**
+   * @function getUndefinedVariables
+   * @description Returns all variables that are referenced but never defined
+   * @returns {Array<{name: string, references: Array}>} Array of undefined variables with their references
+   */
   getUndefinedVariables() {
     const undefined = [];
     for (const [name, refs] of this.references) {
@@ -50,6 +72,11 @@ class VariableRegistry {
     return undefined;
   }
   
+  /**
+   * @function getDuplicateDefinitions
+   * @description Returns all variables that are defined multiple times
+   * @returns {Array<{name: string, first: Object, second: Object}>} Array of duplicate definitions
+   */
   getDuplicateDefinitions() {
     const duplicates = [];
     const seen = new Map();
@@ -74,6 +101,14 @@ const variableRegistry = new VariableRegistry();
  *
  * @param {string} line - The line content to extract variables from
  * @returns {Array<string>} Array of variable names (with $ prefix)
+ * 
+ * @example
+ * extractVariablesFromLine("  $input: user query")
+ * // → ["$input"]
+ * 
+ * @example
+ * extractVariablesFromLine("  $data: raw data  $output: result")
+ * // → ["$data", "$output"]
  */
 const extractVariablesFromLine = (line) => {
   const variables = [];
@@ -148,6 +183,101 @@ const extractVariablesFromLine = (line) => {
  * @param {Array} [feedback=[]] - Reference array for collecting validation feedback
  *
  * @returns {Array} The updated feedback array with validation results
+ *
+ * @example
+ * // Valid REASONING section with logic operators
+ * const content = `
+ * REASONING
+ *   IF temperature IS GREATER THAN 100 THEN
+ *     alert OVERHEATING
+ *   END IF
+ * `;
+ * const feedback = checkSectionContent(content);
+ * // feedback.length === 0
+ *
+ * @example
+ * // Invalid: lowercase logic operators
+ * const content = `
+ * REASONING
+ *   if temperature > 100 then alert OVERHEATING
+ * `;
+ * const feedback = checkSectionContent(content);
+ * // feedback[0].message === "Comparison and logic operators have to be capitalized"
+ *
+ * @example
+ * // Valid FLOW section with single flow
+ * const content = `
+ * FLOW
+ *   $user_input |> validate |> $validated_data
+ * `;
+ * const feedback = checkSectionContent(content);
+ * // feedback.length === 0
+ *
+ * @example
+ * // Valid: Multiple named flows
+ * const content = `
+ * FLOW
+ *   auth: $credentials |> verify |> $user
+ *   data: $user |> fetch_profile |> $profile
+ * `;
+ * const feedback = checkSectionContent(content);
+ * // feedback.length === 0
+ *
+ * @example
+ * // Valid: Compounding flows (no names needed)
+ * const content = `
+ * FLOW
+ *   $word1 |> $word2
+ *   $word2 |> $word3
+ * `;
+ * const feedback = checkSectionContent(content);
+ * // feedback.length === 0 - flows are connected through shared variable
+ *
+ * @example
+ * // Invalid: Multiple flows without names (not compounding)
+ * const content = `
+ * FLOW
+ *   $start |> process1 |> $mid
+ *   $different |> process2 |> $end
+ * `;
+ * const feedback = checkSectionContent(content);
+ * // feedback[0].message === "Multiple flows in FLOW section must be named..."
+ *
+ * @example
+ * // Invalid: Flow without surrounding values
+ * const content = `
+ * FLOW
+ *   $start |> |> $end
+ * `;
+ * const feedback = checkSectionContent(content);
+ * // feedback[0].message === "Flow operators like |> must be surrounded by values"
+ *
+ * @example
+ * // Invalid: Flow not starting/ending with variables
+ * const content = `
+ * FLOW
+ *   start |> process |> end
+ * `;
+ * const feedback = checkSectionContent(content);
+ * // feedback[0].message === "Flow must start and end with variables"
+ *
+ * @example
+ * // Invalid: Flow operators outside FLOW section
+ * const content = `
+ * TASK
+ *   $data |> process
+ * `;
+ * const feedback = checkSectionContent(content);
+ * // feedback[0].message === "Flow operators like |> must only be used under a FLOW section"
+ * 
+ * @example
+ * // Invalid: Variable in TASK section
+ * const content = `
+ * TASK
+ *   Process $user_input
+ * `;
+ * const feedback = checkSectionContent(content);
+ * // feedback[0].message === 'Variable "$user_input" cannot be used in TASK section...'
  */
 const checkSectionContent = (content, feedback) => {
   // Normalize input.
@@ -203,7 +333,6 @@ const checkSectionContent = (content, feedback) => {
   // Process each section (collect variables and validate)
   for (const section of sections) {
     const titleText = section.title.txt;
-    const contentStr = section.contentLines.map(({ txt }) => txt).join("\n");
     
     // Extract and register variables from this section
     for (const lineObj of section.contentLines) {
@@ -265,12 +394,43 @@ const checkSectionContent = (content, feedback) => {
  * @description
  * Analyzes a single section's content for semantic errors based on section type.
  *
+ * This function coordinates validation for different section types:
+ * - REASONING/STEPS/ALGORITHM: Validates logic operator case sensitivity
+ * - FLOW: Validates flow syntax structure
+ * - Other sections: Ensures flow operators are not used
+ *
  * @param {Object} title - The section title object with txt and line properties
  * @param {Array<Object>} contentLines - Array of content line objects
+ * @param {Object} contentLines[].txt - The line text content
+ * @param {number} contentLines[].line - The original line number
  * @param {Array} feedback - Reference array for collecting validation feedback
  * @param {VariableRegistry} variableRegistry - Registry for tracking variables across sections
  *
  * @returns {Array} The updated feedback array
+ *
+ * @example
+ * // Validating a REASONING section with uppercase operators
+ * const contentLines = [
+ *   { txt: "  IF x IS GREATER THAN y THEN", line: 2 },
+ *   { txt: "    alert DIFFERENCE", line: 3 },
+ *   { txt: "  END IF", line: 4 }
+ * ];
+ * sectionAnalysis({txt: "REASONING", line: 1}, contentLines, feedback, variableRegistry);
+ *
+ * @example
+ * // Validating a FLOW section
+ * const contentLines = [
+ *   { txt: "  $input |> validate |> $output", line: 2 }
+ * ];
+ * sectionAnalysis({txt: "FLOW", line: 1}, contentLines, feedback, variableRegistry);
+ *
+ * @example
+ * // Error: Flow operator outside FLOW section
+ * const contentLines = [
+ *   { txt: "  $data |> process", line: 2 }
+ * ];
+ * sectionAnalysis({txt: "TASK", line: 1}, contentLines, feedback, variableRegistry);
+ * // Pushes error: "Flow operators like |> must only be used under a FLOW section"
  */
 const sectionAnalysis = (title, contentLines, feedback, variableRegistry) => {
   let titleText = title.txt;
@@ -314,6 +474,61 @@ const sectionAnalysis = (title, contentLines, feedback, variableRegistry) => {
  * @private
  * @description
  * Validates the syntax of all flows within a FLOW section.
+ *
+ * This function parses multiple flows from content lines, checking for:
+ * - Proper `|>` operator usage (surrounded by values)
+ * - Named flows when multiple flows exist (unless they form a compounding chain)
+ * - Individual flow structure (start/end with variables, valid steps)
+ *
+ * @param {string} content - The full section content as a single string
+ * @param {Array<Object>} contentLines - Array of content line objects with line numbers
+ * @param {number|Array<number>|null} lineRange - Line range(s) for error reporting
+ * @param {Array} feedback - Reference array for collecting validation feedback
+ * @param {VariableRegistry} variableRegistry - Registry for tracking variables across sections
+ *
+ * @returns {void}
+ *
+ * @example
+ * // Single valid flow
+ * const content = "$input |> validate |> $output";
+ * const contentLines = [{ txt: "$input |> validate |> $output", line: 2 }];
+ * validateFlowSyntax(content, contentLines, 2, feedback, variableRegistry);
+ *
+ * @example
+ * // Multiple named flows
+ * const content = "auth: $creds |> verify |> $user\ndata: $user |> fetch |> $profile";
+ * const contentLines = [
+ *   { txt: "auth: $creds |> verify |> $user", line: 2 },
+ *   { txt: "data: $user |> fetch |> $profile", line: 3 }
+ * ];
+ * validateFlowSyntax(content, contentLines, [2,3], feedback, variableRegistry);
+ *
+ * @example
+ * // Valid compounding flows (no names needed)
+ * const content = "$word1 |> $word2\n$word2 |> $word3";
+ * const contentLines = [
+ *   { txt: "$word1 |> $word2", line: 2 },
+ *   { txt: "$word2 |> $word3", line: 3 }
+ * ];
+ * validateFlowSyntax(content, contentLines, [2,3], feedback, variableRegistry);
+ * // No error - flows form a compounding chain
+ *
+ * @example
+ * // Error: Multiple flows without names (not compounding)
+ * const content = "$start |> step1 |> $mid\n$different |> step2 |> $end";
+ * const contentLines = [
+ *   { txt: "$start |> step1 |> $mid", line: 2 },
+ *   { txt: "$different |> step2 |> $end", line: 3 }
+ * ];
+ * validateFlowSyntax(content, contentLines, [2,3], feedback, variableRegistry);
+ * // Pushes error: "Multiple flows in FLOW section must be named..."
+ *
+ * @example
+ * // Error: Flow operator without surrounding values
+ * const content = "$start |> |> $end";
+ * const contentLines = [{ txt: "$start |> |> $end", line: 2 }];
+ * validateFlowSyntax(content, contentLines, 2, feedback, variableRegistry);
+ * // Pushes error: "Flow operators like |> must be surrounded by values"
  */
 const validateFlowSyntax = (content, contentLines, lineRange, feedback, variableRegistry) => {
   // Check for empty segments between |> operators
@@ -340,6 +555,8 @@ const validateFlowSyntax = (content, contentLines, lineRange, feedback, variable
   }
 
   // Parse flows from contentLines
+  // Multi-line flows: lines that start with |> are continuations
+  // New flows: lines that start with $variable (or have a name prefix)
   const flows = [];
   let currentFlow = null;
   
@@ -349,33 +566,40 @@ const validateFlowSyntax = (content, contentLines, lineRange, feedback, variable
     const trimmedLine = line.trim();
     
     if (FLOW_SYMBOL_RE.test(line)) {
+      // Check if this line starts with |> (continuation) or with a variable (new flow)
       const startsWithPipe = trimmedLine.startsWith('|>');
       const startsWithVariable = FLOW_VAR_RE.test(trimmedLine);
       const hasNamePrefix = FLOW_NAME_RE.test(trimmedLine);
       
       if (currentFlow === null) {
+        // Start a new flow
         currentFlow = { parts: [line], lines: [lineNum] };
       } else if (startsWithPipe) {
+        // Continuation of current flow (multi-line)
         currentFlow.parts.push(line);
         currentFlow.lines.push(lineNum);
       } else if (startsWithVariable || hasNamePrefix) {
+        // New flow starts (either with $variable or name: prefix)
         flows.push(currentFlow);
         currentFlow = { parts: [line], lines: [lineNum] };
       } else {
+        // Line with |> but doesn't start with |> or variable - treat as continuation
         currentFlow.parts.push(line);
         currentFlow.lines.push(lineNum);
       }
     } else if (line.trim() && currentFlow !== null) {
+      // Non-empty line without operator - end of current flow
       flows.push(currentFlow);
       currentFlow = null;
     }
   }
   
+  // Push the last flow if it exists
   if (currentFlow !== null) {
     flows.push(currentFlow);
   }
   
-  // Validation: Empty flow section
+  // Validation: Empty flow section (no flows defined)
   if (flows.length === 0 && lineRange !== null && lineRange !== undefined) {
     feedback.push({
       type: "error",
@@ -390,7 +614,7 @@ const validateFlowSyntax = (content, contentLines, lineRange, feedback, variable
   for (const flow of flows) {
     const nameMatch = flow.parts[0].trim().match(FLOW_NAME_RE);
     if (nameMatch) {
-      const name = nameMatch[0].slice(0, -1);
+      const name = nameMatch[0].slice(0, -1); // Remove trailing colon
       if (usedNames.has(name)) {
         feedback.push({
           type: "error",
@@ -407,18 +631,21 @@ const validateFlowSyntax = (content, contentLines, lineRange, feedback, variable
     const fullFlow = flow.parts.map(p => p.trim()).join(" ");
     const flowParts = fullFlow.split(FLOW_SYMBOL_RE).map(p => p.trim());
     
+    // Register input variables (first part, after removing name prefix)
     const firstPart = flowParts[0].replace(FLOW_NAME_RE, "").trim();
     const inputMatch = firstPart.match(FLOW_VAR_RE);
     if (inputMatch) {
       variableRegistry.referenceVariable(inputMatch[0], "FLOW", flow.lines[0]);
     }
     
+    // Register output variables (last part)
     const lastPart = flowParts[flowParts.length - 1].trim();
     const outputMatch = lastPart.match(FLOW_VAR_RE);
     if (outputMatch) {
       variableRegistry.defineVariable(outputMatch[0], "FLOW", flow.lines[flow.lines.length - 1], false, true);
     }
     
+    // Register intermediate variables (steps that are variables)
     for (let i = 1; i < flowParts.length - 1; i++) {
       const stepMatch = flowParts[i].match(FLOW_VAR_RE);
       if (stepMatch) {
@@ -454,14 +681,19 @@ const validateFlowSyntax = (content, contentLines, lineRange, feedback, variable
       const current = flowData[i];
       
       if (!current.isNamed) {
+        // For unnamed flows, check if they connect to previous output
         if (previousOutput !== null && current.input !== previousOutput) {
           isValidChain = false;
           break;
         }
       }
+      
+      // Update previous output regardless of named status
+      // (named flows can be in the middle of a chain)
       previousOutput = current.output;
     }
     
+    // If not a valid chain, report error
     if (!isValidChain) {
       const unnamedFlowsList = flowData.filter(f => !f.isNamed);
       if (unnamedFlowsList.length > 0) {
@@ -485,14 +717,89 @@ const validateFlowSyntax = (content, contentLines, lineRange, feedback, variable
  * @private
  * @description
  * Validates the structure of a single flow expression.
+ *
+ * This function performs detailed validation on an individual flow:
+ * - Ensures flow starts and ends with variables (`$variable`)
+ * - Validates intermediate steps are properly formatted
+ * - Removes flow name prefixes before validation
+ *
+ * @param {Object} flow - The flow object containing parts and line numbers
+ * @param {Array<string>} flow.parts - Array of line strings that make up the flow
+ * @param {Array<number>} flow.lines - Array of original line numbers for each part
+ * @param {Array} feedback - Reference array for collecting validation feedback
+ *
+ * @returns {void}
+ *
+ * @example
+ * // Valid flow with word steps
+ * const flow = {
+ *   parts: ["$input |> validate |> sanitize |> $output"],
+ *   lines: [2]
+ * };
+ * validateSingleFlow(flow, feedback);
+ *
+ * @example
+ * // Valid flow with variable steps
+ * const flow = {
+ *   parts: ["$input |> $validator |> $sanitizer |> $output"],
+ *   lines: [2]
+ * };
+ * validateSingleFlow(flow, feedback);
+ *
+ * @example
+ * // Valid flow with hyphens and underscores in steps
+ * const flow = {
+ *   parts: ["$input |> validate-input |> sanitize_output |> $output"],
+ *   lines: [2]
+ * };
+ * validateSingleFlow(flow, feedback);
+ *
+ * @example
+ * // Valid named flow
+ * const flow = {
+ *   parts: ["auth: $creds |> verify |> $user"],
+ *   lines: [2]
+ * };
+ * validateSingleFlow(flow, feedback);
+ * // The "auth: " prefix is automatically stripped
+ *
+ * @example
+ * // Error: Flow doesn't start with variable
+ * const flow = {
+ *   parts: ["input |> process |> $output"],
+ *   lines: [2]
+ * };
+ * validateSingleFlow(flow, feedback);
+ * // Pushes error: "Flow must start and end with variables"
+ *
+ * @example
+ * // Error: Invalid step contains spaces or special chars
+ * const flow = {
+ *   parts: ["$input |> invalid step! |> $output"],
+ *   lines: [2]
+ * };
+ * validateSingleFlow(flow, feedback);
+ * // Pushes error: 'Invalid flow step "invalid step!". Steps must be words...'
+ *
+ * @example
+ * // Multi-line flow
+ * const flow = {
+ *   parts: ["$input |> validate", "|> sanitize |> $output"],
+ *   lines: [2, 3]
+ * };
+ * validateSingleFlow(flow, feedback);
+ * // Parts are joined: "$input |> validate |> sanitize |> $output"
  */
 const validateSingleFlow = (flow, feedback) => {
+  // Combine all parts and split by |>
   const fullFlow = flow.parts.join(" ");
   const parts = fullFlow.split(FLOW_SYMBOL_RE).map(p => p.trim());
   
+  // Remove any flow name prefix (e.g., "name: ")
   const firstPart = parts[0].replace(FLOW_NAME_RE, "").trim();
   parts[0] = firstPart;
   
+  // Check first and last parts are variables (start with $)
   const firstIsVar = FLOW_VAR_RE.test(parts[0]);
   const lastIsVar = FLOW_VAR_RE.test(parts[parts.length - 1]);
   
@@ -504,8 +811,10 @@ const validateSingleFlow = (flow, feedback) => {
     });
   }
   
+  // Validate intermediate steps
   for (let i = 1; i < parts.length - 1; i++) {
     const part = parts[i];
+    // Allow words (with letters, numbers, hyphens, underscores) or variables
     const isValidPart = VALID_STEP_RE.test(part) || FLOW_VAR_RE.test(part);
     if (!isValidPart && part !== "") {
       feedback.push({
@@ -524,7 +833,6 @@ const validateSingleFlow = (flow, feedback) => {
 checkSectionContent.sectionAnalysis = sectionAnalysis;
 checkSectionContent.validateFlowSyntax = validateFlowSyntax;
 checkSectionContent.validateSingleFlow = validateSingleFlow;
-checkSectionContent.extractVariablesFromLine = extractVariablesFromLine;
 module.exports = Object.freeze(Object.defineProperty(checkSectionContent, "checkSectionContent", {
   value: checkSectionContent
 }));
