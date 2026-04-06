@@ -25,7 +25,7 @@ ROLE
 ---
 
 INPUT
-  FORMAT: text
+  $input: user input
 
 ---
 
@@ -41,7 +41,7 @@ REASONING
 ---
 
 OUTPUT
-  FORMAT: json
+  $output: final output
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -62,8 +62,18 @@ REASONING
 
     test("validates document with only FLOW section (no REASONING)", () => {
       const content = `
+INPUT
+  $input: user query
+
+---
+
 FLOW
   $input |> validate |> process |> $output
+
+---
+
+OUTPUT
+  $output: processed result
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -72,11 +82,20 @@ FLOW
 
     test("validates document with compounding flows (no names needed)", () => {
       const content = `
+INPUT
+  $word1: starting value
+
+---
+
 FLOW
   $word1 |> $word2
   $word2 |> $word3
-  
   $word3 |> $word4
+
+---
+
+OUTPUT
+  $word4: final value
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -85,10 +104,23 @@ FLOW
 
     test("validates document with multiple named flows", () => {
       const content = `
+INPUT
+  $input: user query
+  $error: error message
+
+---
+
 FLOW
   primary: $input |> validate |> $validated
   secondary: $input |> cache |> $cached
   fallback: $error |> retry |> $recovered
+
+---
+
+OUTPUT
+  $validated: validated result
+  $cached: cached result
+  $recovered: recovered result
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -97,8 +129,20 @@ FLOW
 
     test("validates flow with variable steps", () => {
       const content = `
+INPUT
+  $data: input data
+  $validator: validation function
+  $transformer: transformation function
+
+---
+
 FLOW
   $data |> $validator |> $transformer |> $output
+
+---
+
+OUTPUT
+  $output: final result
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -107,8 +151,18 @@ FLOW
 
     test("validates flow with hyphens and underscores in steps", () => {
       const content = `
+INPUT
+  $input: user query
+
+---
+
 FLOW
   $input |> validate-input |> sanitize_output |> transform_data |> $output
+
+---
+
+OUTPUT
+  $output: transformed result
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -117,11 +171,21 @@ FLOW
 
     test("validates multi-line flow", () => {
       const content = `
+INPUT
+  $input: user query
+
+---
+
 FLOW
   $input |> validate
   |> sanitize
   |> transform
   |> $output
+
+---
+
+OUTPUT
+  $output: final result
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -240,8 +304,18 @@ REASONING
 
     test("reports error for flow without surrounding values (empty segment)", () => {
       const content = `
+INPUT
+  $start: starting value
+
+---
+
 FLOW
   $start |> |> $end
+
+---
+
+OUTPUT
+  $end: ending value
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -253,8 +327,18 @@ FLOW
 
     test("reports error for flow not starting with variable", () => {
       const content = `
+INPUT
+  $end: ending value
+
+---
+
 FLOW
   start |> process |> $end
+
+---
+
+OUTPUT
+  $end: ending value
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -266,8 +350,18 @@ FLOW
 
     test("reports error for flow not ending with variable", () => {
       const content = `
+INPUT
+  $start: starting value
+
+---
+
 FLOW
   $start |> process |> end
+
+---
+
+OUTPUT
+  end: ending value
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -279,8 +373,18 @@ FLOW
 
     test("reports error for flow with invalid step characters", () => {
       const content = `
+INPUT
+  $input: user input
+
+---
+
 FLOW
   $input |> process!data |> $output
+
+---
+
+OUTPUT
+  $output: final output
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -293,8 +397,18 @@ FLOW
 
     test("reports error for flow with spaces in step", () => {
       const content = `
+INPUT
+  $input: user input
+
+---
+
 FLOW
   $input |> process data |> $output
+
+---
+
+OUTPUT
+  $output: final output
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -307,9 +421,21 @@ FLOW
 
     test("reports error for multiple unrelated flows without names", () => {
       const content = `
+INPUT
+  $start: start value
+  $different: different value
+
+---
+
 FLOW
   $start |> process1 |> $mid
   $different |> process2 |> $end
+
+---
+
+OUTPUT
+  $mid: middle value
+  $end: end value
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -321,9 +447,21 @@ FLOW
 
     test("allows multiple unrelated flows with names", () => {
       const content = `
+INPUT
+  $start: start value
+  $different: different value
+
+---
+
 FLOW
   flow1: $start |> process1 |> $mid
   flow2: $different |> process2 |> $end
+
+---
+
+OUTPUT
+  $mid: middle value
+  $end: end value
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -335,10 +473,20 @@ FLOW
 
     test("allows compounding chain without names", () => {
       const content = `
+INPUT
+  $word1: starting value
+
+---
+
 FLOW
   $word1 |> $word2
   $word2 |> $word3
   $word3 |> $word4
+
+---
+
+OUTPUT
+  $word4: final value
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -350,8 +498,18 @@ FLOW
 
     test("allows single flow with name", () => {
       const content = `
+INPUT
+  $start: starting value
+
+---
+
 FLOW
   named: $start |> process |> $end
+
+---
+
+OUTPUT
+  $end: ending value
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -361,9 +519,21 @@ FLOW
 
     test("reports error for duplicate flow names", () => {
       const content = `
+INPUT
+  $input: input value
+  $different: different value
+
+---
+
 FLOW
   process: $input |> validate |> $validated
   process: $different |> transform |> $output
+
+---
+
+OUTPUT
+  $validated: validated result
+  $output: output result
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -375,9 +545,19 @@ FLOW
 
     test("allows unique flow names", () => {
       const content = `
+INPUT
+  $input: input value
+
+---
+
 FLOW
   validate: $input |> validate |> $validated
   transform: $validated |> transform |> $output
+
+---
+
+OUTPUT
+  $output: final output
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -403,10 +583,22 @@ FLOW
 
     test("reports error for broken compounding chain (missing variable connection)", () => {
       const content = `
+INPUT
+  $word1: first value
+  $word3: third value
+
+---
+
 FLOW
   $word1 |> $word2
   $word3 |> $word4
   $word4 |> $word5
+
+---
+
+OUTPUT
+  $word2: second value
+  $word5: fifth value
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -418,10 +610,20 @@ FLOW
 
     test("allows compounding chain with named flows in between", () => {
       const content = `
+INPUT
+  $word1: starting value
+
+---
+
 FLOW
   $word1 |> $word2
   special: $word2 |> transform |> $word3
   $word3 |> $word4
+
+---
+
+OUTPUT
+  $word4: final value
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -433,9 +635,21 @@ FLOW
 
     test("reports error when unnamed flow doesn't connect to previous output", () => {
       const content = `
+INPUT
+  $start: start value
+  $different: different value
+
+---
+
 FLOW
   named: $start |> process1 |> $mid
   $different |> process2 |> $end
+
+---
+
+OUTPUT
+  $mid: middle value
+  $end: end value
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -453,8 +667,18 @@ FLOW
 
     test("reports error for -> operator", () => {
       const content = `
+INPUT
+  $input: user input
+
+---
+
 FLOW
   $input -> process -> $output
+
+---
+
+OUTPUT
+  $output: final output
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -466,8 +690,18 @@ FLOW
 
     test("reports error for => operator", () => {
       const content = `
+INPUT
+  $input: user input
+
+---
+
 FLOW
   $input => process => $output
+
+---
+
+OUTPUT
+  $output: final output
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -479,8 +713,18 @@ FLOW
 
     test("reports error for > operator", () => {
       const content = `
+INPUT
+  $input: user input
+
+---
+
 FLOW
   $input > process > $output
+
+---
+
+OUTPUT
+  $output: final output
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -492,8 +736,18 @@ FLOW
 
     test("reports error for Unicode arrow →", () => {
       const content = `
+INPUT
+  $input: user input
+
+---
+
 FLOW
   $input → process → $output
+
+---
+
+OUTPUT
+  $output: final output
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -505,8 +759,18 @@ FLOW
 
     test("reports error for Unicode triangle ▶", () => {
       const content = `
+INPUT
+  $input: user input
+
+---
+
 FLOW
   $input ▶ process ▶ $output
+
+---
+
+OUTPUT
+  $output: final output
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -522,12 +786,20 @@ FLOW
 
   describe("sectionAnalysis (sub-function)", () => {
 
+    // Create a mock variable registry for testing
+    const mockRegistry = {
+      referenceVariable: jest.fn(),
+      defineVariable: jest.fn(),
+      variables: new Map(),
+      references: new Map()
+    };
+
     test("detects lowercase logic operators in REASONING section", () => {
       const contentLines = [
         { txt: "  if x > y then z=x", line: 2 }
       ];
       const feedback = [];
-      sectionAnalysis({txt: "REASONING", line: 1}, contentLines, feedback);
+      sectionAnalysis({txt: "REASONING", line: 1}, contentLines, feedback, mockRegistry);
       
       expect(feedback.some(f => 
         f.message.includes("Comparison and logic operators have to be capitalized")
@@ -539,7 +811,7 @@ FLOW
         { txt: "  IF x > y THEN z=x", line: 2 }
       ];
       const feedback = [];
-      sectionAnalysis({txt: "STEPS", line: 1}, contentLines, feedback);
+      sectionAnalysis({txt: "STEPS", line: 1}, contentLines, feedback, mockRegistry);
       
       expect(feedback.length).toBe(0);
     });
@@ -549,7 +821,7 @@ FLOW
         { txt: "  $data |> process", line: 2 }
       ];
       const feedback = [];
-      sectionAnalysis("TASK", contentLines, feedback);
+      sectionAnalysis({txt: "TASK", line: 1}, contentLines, feedback, mockRegistry);
       
       expect(feedback.some(f => 
         f.message.includes("Flow operators like |> must only be used under a FLOW section")
@@ -562,12 +834,27 @@ FLOW
 
   describe("validateFlowSyntax (sub-function)", () => {
 
+    // Create a mock variable registry for testing
+    const mockRegistry = {
+      referenceVariable: jest.fn(),
+      defineVariable: jest.fn(),
+      variables: new Map(),
+      references: new Map()
+    };
+
+    beforeEach(() => {
+      mockRegistry.referenceVariable.mockClear();
+      mockRegistry.defineVariable.mockClear();
+      mockRegistry.variables.clear();
+      mockRegistry.references.clear();
+    });
+
     test("detects empty segment between |> operators", () => {
       const content = "$start |> |> $end";
       const contentLines = [{ txt: "$start |> |> $end", line: 2 }];
       const feedback = [];
       
-      validateFlowSyntax(content, contentLines, 2, feedback);
+      validateFlowSyntax(content, contentLines, 2, feedback, mockRegistry);
       
       expect(feedback.some(f => 
         f.message.includes("must be surrounded by")
@@ -582,7 +869,7 @@ FLOW
       ];
       const feedback = [];
       
-      validateFlowSyntax(content, contentLines, [2,3], feedback);
+      validateFlowSyntax(content, contentLines, [2,3], feedback, mockRegistry);
       
       expect(feedback.some(f => 
         f.message.includes("Multiple flows in FLOW section must be named")
@@ -597,7 +884,7 @@ FLOW
       ];
       const feedback = [];
       
-      validateFlowSyntax(content, contentLines, [2,3], feedback);
+      validateFlowSyntax(content, contentLines, [2,3], feedback, mockRegistry);
       
       expect(feedback.some(f => 
         f.message.includes("Multiple flows in FLOW section must be named")
@@ -609,7 +896,7 @@ FLOW
       const contentLines = [{ txt: "$input -> process -> $output", line: 2 }];
       const feedback = [];
       
-      validateFlowSyntax(content, contentLines, 2, feedback);
+      validateFlowSyntax(content, contentLines, 2, feedback, mockRegistry);
       
       expect(feedback.some(f => 
         f.message.includes("Invalid flow operator")
@@ -624,7 +911,7 @@ FLOW
       ];
       const feedback = [];
       
-      validateFlowSyntax(content, contentLines, [2,3], feedback);
+      validateFlowSyntax(content, contentLines, [2,3], feedback, mockRegistry);
       
       expect(feedback.some(f => 
         f.message.includes("Duplicate flow name")
@@ -639,7 +926,7 @@ FLOW
       ];
       const feedback = [];
       
-      validateFlowSyntax(content, contentLines, [2,3], feedback);
+      validateFlowSyntax(content, contentLines, [2,3], feedback, mockRegistry);
       
       expect(feedback.some(f => 
         f.message.includes("contains no valid flow definitions")
@@ -797,8 +1084,18 @@ ROLE
     test("accepts and mutates existing feedback array", () => {
       const existingFeedback = [{ type: "info", message: "Pre-check", line: 0 }];
       const content = `
+INPUT
+  $start: starting value
+
+---
+
 FLOW
   $start |> |> $end
+
+---
+
+OUTPUT
+  $end: ending value
 `;
       const feedback = checkSectionContent(content, existingFeedback);
       
@@ -809,8 +1106,18 @@ FLOW
 
     test("creates new array when not provided", () => {
       const content = `
+INPUT
+  $input: user input
+
+---
+
 FLOW
   $input |> process |> $output
+
+---
+
+OUTPUT
+  $output: final output
 `;
       const feedback = checkSectionContent(content);
       

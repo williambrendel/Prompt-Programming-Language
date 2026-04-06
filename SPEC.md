@@ -606,6 +606,7 @@ $input -> process -> $output
 | NOT `\|>`, like `-->` invalid flow operator | - | ❌ In FLOW |
 | Duplicate flow names | - | ❌ Should be unique |
 | Flow section with no flow | - | ❌ Name the section something else |
+| Flow variables declared outside INPUT, OUTPUT or FLOW | - | ❌ Move the variable in INPUT, OUTPUT or FLOW |
 
 ---
 
