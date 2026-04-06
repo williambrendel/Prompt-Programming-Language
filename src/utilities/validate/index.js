@@ -1,7 +1,7 @@
 "use strict"
 
 const checkLineStructure = require("./checkLineStructure");
-const checkSections = require("./checkSections");
+const checkSectionStructure = require("./checkSectionStructure");
 const isValidUTF8 = require("./isValidUTF8");
 
 /**
@@ -19,7 +19,7 @@ const isValidUTF8 = require("./isValidUTF8");
  * |-------|-----------|--------|
  * | 1 | `isValidUTF8` | UTF-8 encoding compliance |
  * | 2 | `checkLineStructure` | Line endings, tabs, indentation rules |
- * | 3 | `checkSections` | Section headers, separators, required sections |
+ * | 3 | `checkSectionStructure` | Section headers, separators, required sections |
  *
  * ## Execution Order
  *
@@ -95,7 +95,7 @@ const validate = (content, feedback) => {
   checkLineStructure(content, feedback);
 
   // Check prompt section format.
-  checkSections(content, feedback);
+  checkSectionStructure(content, feedback);
 
   // Return reordered feedback by line.
   return feedback.sort((a, b) => (getLineNumForSort(a.line) - getLineNumForSort(b.line)));
