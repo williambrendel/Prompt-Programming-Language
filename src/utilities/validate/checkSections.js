@@ -213,6 +213,9 @@ const checkSections = (content, feedback) => {
   // Check if we end with a separator.
   previousType === "separator" && feedback.push({ type: "error", message: `Cannot end with a separator`, line: j + 1 });
 
+  // Check if entire prompt is useless.
+  previousType || feedback.push({ type: "error", message: `Empty prompt or prompt contains only comments`, line: null });
+
   // Check for required sections.
   titles.get("TASK") || titles.get("GOAL") || feedback.push({ type: "error", message: `Missing TASK or GOAL section`, line: null });
   titles.get("ROLE") || feedback.push({ type: "error", message: `Missing ROLE section`, line: null });
