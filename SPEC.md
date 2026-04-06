@@ -604,6 +604,8 @@ $input -> process -> $output
 | Invalid step characters | - | ❌ `$a \|> step! \|> $b` |
 | `\|>` outside FLOW section | - | ❌ In REASONING/TASK |
 | NOT `\|>`, like `-->` invalid flow operator | - | ❌ In FLOW |
+| Duplicate flow names | - | ❌ Should be unique |
+| Flow section with no flow | - | ❌ Name the section something else |
 
 ---
 

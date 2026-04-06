@@ -184,10 +184,10 @@ const checkSectionContent = (content, feedback) => {
       // The line is a real section title.
       if (!SPECIAL_CHARS_RE.test(line)) {
         // Perform previous section title - content analysis
-        title && contentLines.length && sectionAnalysis(title, contentLines, feedback);
+        title && sectionAnalysis(title, contentLines, feedback);
 
         // Push new title.
-        title = line;
+        title = {txt: line, line: i + 1};
 
         // Reset content.
         contentLines.length = 0;
@@ -199,7 +199,7 @@ const checkSectionContent = (content, feedback) => {
   }
 
   // Perform previous section title - content analysis, for the last section.
-  title && contentLines.length && sectionAnalysis(title, contentLines, feedback);
+  title && sectionAnalysis(title, contentLines, feedback);
 
   return feedback;
 }
@@ -249,25 +249,26 @@ const checkSectionContent = (content, feedback) => {
  */
 const sectionAnalysis = (title, contentLines, feedback) => {
   // Normalize input.
-  (title === "STEPS" || title === "ALGORITHM") && (title = "REASONING");
+  let {txt: titleText, line: titleLine} = title || {};
+  (titleText === "STEPS" || titleText === "ALGORITHM") && (titleText = "REASONING");
 
   // Extract content and content line range.
   let content = contentLines.map(({ txt }) => txt).join("\n"),
-    lineRange = [contentLines[0].line, contentLines[contentLines.length - 1].line];
+    lineRange = contentLines.length && [contentLines[0].line, contentLines[contentLines.length - 1].line] || [titleLine, titleLine];
   lineRange[1] <= lineRange[0] && (lineRange.length = 1);
   isNaN(lineRange[0]) && (lineRange[0] = null);
   lineRange.length > 1 || (lineRange = lineRange[0]);
 
   // Detect logic semantic errors.
-  title === "REASONING" && CASE_INSENSITIVE_LOGIC_RE.test(content) && !STRICT_LOGIC_RE.test(content)
+  titleText === "REASONING" && CASE_INSENSITIVE_LOGIC_RE.test(content) && !STRICT_LOGIC_RE.test(content)
     && feedback.push({ type: "error", message: `Comparison and logic operators have to be capitalized`, line: lineRange })
     || (
-      title !== "REASONING" && STRICT_LOGIC_RE.test(content)
+      titleText !== "REASONING" && STRICT_LOGIC_RE.test(content)
         && feedback.push({ type: "error", message: `Comparison and logic operators can only be used inside a REASONING, STEPS, or ALGORITHM section`, line: lineRange })
     );
 
   // Detect flow semantic error.
-  if (title === "FLOW") {
+  if (titleText === "FLOW") {
     validateFlowSyntax(content, contentLines, lineRange, feedback);
   } else {
     FLOW_SYMBOL_RE.test(content)
@@ -406,7 +407,35 @@ const validateFlowSyntax = (content, contentLines, lineRange, feedback) => {
     flows.push(currentFlow);
   }
   
-  // Validate compounding chains - all unnamed flows must form a single connected chain
+  // Validation 3: Empty flow section (no flows defined)
+  // If there's a section (indicated by lineRange) but no flows, report error
+  if (flows.length === 0 && lineRange !== null && lineRange !== undefined) {
+    feedback.push({
+      type: "error",
+      message: `FLOW section contains no valid flow definitions. Each flow must contain the |> operator.`,
+      line: lineRange
+    });
+    return;
+  }
+  
+  // Validation 2: Flow name uniqueness
+  const usedNames = new Set();
+  for (const flow of flows) {
+    const nameMatch = flow.parts[0].trim().match(FLOW_NAME_RE);
+    if (nameMatch) {
+      const name = nameMatch[0].slice(0, -1); // Remove trailing colon
+      if (usedNames.has(name)) {
+        feedback.push({
+          type: "error",
+          message: `Duplicate flow name "${name}". Flow names must be unique within a FLOW section.`,
+          line: flow.lines[0]
+        });
+      }
+      usedNames.add(name);
+    }
+  }
+  
+  // Validation 1 & 4: Flow variable consistency and compounding chain validation
   if (flows.length > 1) {
     // Extract flow data for validation
     const flowData = flows.map(flow => {
@@ -423,6 +452,7 @@ const validateFlowSyntax = (content, contentLines, lineRange, feedback) => {
       return {
         flow,
         isNamed,
+        name: flow.parts[0].trim().match(FLOW_NAME_RE)?.[0].slice(0, -1),
         input: firstVarMatch ? firstVarMatch[0] : firstPart,
         output: lastVarMatch ? lastVarMatch[0] : lastPart
       };
@@ -450,7 +480,6 @@ const validateFlowSyntax = (content, contentLines, lineRange, feedback) => {
     
     // If not a valid chain, report error
     if (!isValidChain) {
-      // Find which flows are unnamed and breaking the chain
       const unnamedFlowsList = flowData.filter(f => !f.isNamed);
       if (unnamedFlowsList.length > 0) {
         feedback.push({

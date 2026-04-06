@@ -45,8 +45,6 @@ OUTPUT
 `;
       const feedback = checkSectionContent(content);
       const errors = feedback.filter(f => f.type === "error");
-      // The test shows errors about logic operators in FLOW section
-      // This indicates the test document needs adjustment
       expect(errors.length).toBe(0);
     });
 
@@ -361,6 +359,92 @@ FLOW
       expect(errors.length).toBe(0);
     });
 
+    test("reports error for duplicate flow names", () => {
+      const content = `
+FLOW
+  process: $input |> validate |> $validated
+  process: $different |> transform |> $output
+`;
+      const feedback = checkSectionContent(content);
+      const errors = feedback.filter(f => f.type === "error");
+      
+      expect(errors.some(e => 
+        e.message.includes("Duplicate flow name")
+      )).toBe(true);
+    });
+
+    test("allows unique flow names", () => {
+      const content = `
+FLOW
+  validate: $input |> validate |> $validated
+  transform: $validated |> transform |> $output
+`;
+      const feedback = checkSectionContent(content);
+      const errors = feedback.filter(f => f.type === "error");
+      
+      expect(errors.some(e => 
+        e.message.includes("Duplicate flow name")
+      )).toBe(false);
+    });
+
+    test("reports error for empty FLOW section with content but no flows", () => {
+      const content = `
+FLOW
+  # Just a comment
+  # No flow operators here
+`;
+      const feedback = checkSectionContent(content);
+      const errors = feedback.filter(f => f.type === "error");
+      
+      expect(errors.some(e => 
+        e.message.includes("contains no valid flow definitions")
+      )).toBe(true);
+    });
+
+    test("reports error for broken compounding chain (missing variable connection)", () => {
+      const content = `
+FLOW
+  $word1 |> $word2
+  $word3 |> $word4
+  $word4 |> $word5
+`;
+      const feedback = checkSectionContent(content);
+      const errors = feedback.filter(f => f.type === "error");
+      
+      expect(errors.some(e => 
+        e.message.includes("Multiple flows in FLOW section must be named")
+      )).toBe(true);
+    });
+
+    test("allows compounding chain with named flows in between", () => {
+      const content = `
+FLOW
+  $word1 |> $word2
+  special: $word2 |> transform |> $word3
+  $word3 |> $word4
+`;
+      const feedback = checkSectionContent(content);
+      const errors = feedback.filter(f => f.type === "error");
+      
+      expect(errors.some(e => 
+        e.message.includes("Multiple flows in FLOW section must be named")
+      )).toBe(false);
+    });
+
+    test("reports error when unnamed flow doesn't connect to previous output", () => {
+      const content = `
+FLOW
+  named: $start |> process1 |> $mid
+  $different |> process2 |> $end
+`;
+      const feedback = checkSectionContent(content);
+      const errors = feedback.filter(f => f.type === "error");
+      
+      expect(errors.some(e => 
+        e.message.includes("Multiple flows in FLOW section must be named")
+      )).toBe(true);
+    });
+
   });
 
   // ── Non-standard flow operator detection ────────────────────────────────
@@ -443,7 +527,7 @@ FLOW
         { txt: "  if x > y then z=x", line: 2 }
       ];
       const feedback = [];
-      sectionAnalysis("REASONING", contentLines, feedback);
+      sectionAnalysis({txt: "REASONING", line: 1}, contentLines, feedback);
       
       expect(feedback.some(f => 
         f.message.includes("Comparison and logic operators have to be capitalized")
@@ -455,7 +539,7 @@ FLOW
         { txt: "  IF x > y THEN z=x", line: 2 }
       ];
       const feedback = [];
-      sectionAnalysis("STEPS", contentLines, feedback);
+      sectionAnalysis({txt: "STEPS", line: 1}, contentLines, feedback);
       
       expect(feedback.length).toBe(0);
     });
@@ -529,6 +613,36 @@ FLOW
       
       expect(feedback.some(f => 
         f.message.includes("Invalid flow operator")
+      )).toBe(true);
+    });
+
+    test("detects duplicate flow names", () => {
+      const content = "process: $start |> step1 |> $mid\nprocess: $different |> step2 |> $end";
+      const contentLines = [
+        { txt: "process: $start |> step1 |> $mid", line: 2 },
+        { txt: "process: $different |> step2 |> $end", line: 3 }
+      ];
+      const feedback = [];
+      
+      validateFlowSyntax(content, contentLines, [2,3], feedback);
+      
+      expect(feedback.some(f => 
+        f.message.includes("Duplicate flow name")
+      )).toBe(true);
+    });
+
+    test("detects empty FLOW section with content but no flows", () => {
+      const content = "# Just comments\n# No flow operators";
+      const contentLines = [
+        { txt: "# Just comments", line: 2 },
+        { txt: "# No flow operators", line: 3 }
+      ];
+      const feedback = [];
+      
+      validateFlowSyntax(content, contentLines, [2,3], feedback);
+      
+      expect(feedback.some(f => 
+        f.message.includes("contains no valid flow definitions")
       )).toBe(true);
     });
 
