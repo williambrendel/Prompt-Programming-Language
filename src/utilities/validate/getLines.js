@@ -63,7 +63,9 @@
  */
 const LINE_SPLIT_RE = /\r?\n|\r/g;
 
-const getLines = content => (content || "").split(LINE_SPLIT_RE);
+const getLines = content => typeof content === "string"
+  && (content || "").split(LINE_SPLIT_RE)
+  || [""];
 
 /**
  * @ignore

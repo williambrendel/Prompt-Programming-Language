@@ -210,11 +210,12 @@ describe("getLines", () => {
       const content = "#!/usr/bin/env node\nconst x = 1;\r\nfunction test() {\r  return true;\n}";
       const result = getLines(content);
       
-      expect(result).toHaveLength(4);
+      expect(result).toHaveLength(5);
       expect(result[0]).toBe("#!/usr/bin/env node");
       expect(result[1]).toBe("const x = 1;");
       expect(result[2]).toBe("function test() {");
-      expect(result[3]).toBe("  return true;\n}");
+      expect(result[3]).toBe("  return true;");
+      expect(result[4]).toBe("}");  // Note: no \n} here
     });
 
     test("handles log file with various line endings", () => {
@@ -241,11 +242,12 @@ describe("getLines", () => {
       const content = "// Header comment\nfunction main() {\r\n  // Indented comment\n  return true;\r}";
       const result = getLines(content);
       
-      expect(result).toHaveLength(4);
+      expect(result).toHaveLength(5);
       expect(result[0]).toBe("// Header comment");
       expect(result[1]).toBe("function main() {");
       expect(result[2]).toBe("  // Indented comment");
-      expect(result[3]).toBe("  return true;\n}");
+      expect(result[3]).toBe("  return true;");
+      expect(result[4]).toBe("}");
     });
 
   });

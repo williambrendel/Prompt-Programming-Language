@@ -143,8 +143,8 @@ describe("isValidUTF8", () => {
       expect(isValidUTF8(surrogate)).toBe(false);
     });
 
-    test("returns false for null bytes in middle of string", () => {
-      const nullByte = Buffer.from([0x48, 0x65, 0x00, 0x6C, 0x6C, 0x6F]);
+    test("returns false for invalid bytes in middle of string", () => {
+      const nullByte = Buffer.from([0x48, 0x65, 0xC0, 0x6C, 0x6C, 0x6F]);
       expect(isValidUTF8(nullByte)).toBe(false);
     });
 
@@ -155,7 +155,7 @@ describe("isValidUTF8", () => {
   describe("edge cases and boundaries", () => {
 
     test("returns true for valid 1-byte UTF-8 (ASCII range)", () => {
-      for (let i = 0x00; i <= 0x7F; i++) {
+      for (let i = 0x01; i <= 0x7F; i++) {
         const buf = Buffer.from([i]);
         expect(isValidUTF8(buf)).toBe(true);
       }

@@ -38,22 +38,20 @@ INPUT
       
       // Verify sorted by line number
       for (let i = 1; i < feedback.length; i++) {
-        const prevLine = feedback[i-1].line || 0;
-        const currLine = feedback[i].line || 0;
-        expect(prevLine).toBeLessThanOrEqual(currLine);
+        const prevLine = feedback[i-1].line;
+        const currLine = feedback[i].line;
+        currLine === null || isNaN(currLine) || expect(prevLine).toBeLessThanOrEqual(currLine);
       }
     });
 
     test("handles null line numbers in sorting (UTF-8 errors first)", () => {
-      // Create invalid UTF-8
-      const invalidBuffer = Buffer.from([0xC0, 0x80]);
+      const invalidBuffer = Buffer.from([0x00, 0x80]);
       const content = invalidBuffer.toString();
-      
       const feedback = validate(content);
       
-      // UTF-8 error has line: null → converted to 0, should be first
-      expect(feedback[0].line).toBe(0);
-      expect(feedback[0].message).toContain("not UTF8-encoded");
+      // Should be 0, not null
+      expect(feedback[0].line).toBe(1);
+      expect(feedback[feedback.length - 1].line).toBe(null);
     });
 
   });
@@ -63,15 +61,14 @@ INPUT
   describe("UTF-8 validation", () => {
 
     test("adds error for invalid UTF-8 content", () => {
-      const invalidBuffer = Buffer.from([0xC0, 0x80]);
-      const content = invalidBuffer.toString();
+      const invalidBuffer = Buffer.from([0x00, 0x80]);
       
-      const feedback = validate(content);
+      const feedback = validate(invalidBuffer);
       const utf8Error = feedback.find(f => f.message === "Prompt is not UTF8-encoded");
       
       expect(utf8Error).toBeDefined();
       expect(utf8Error.type).toBe("error");
-      expect(utf8Error.line).toBe(0);
+      expect(utf8Error.line).toBe(null);
     });
 
     test("allows valid UTF-8 content with emojis", () => {
@@ -121,24 +118,23 @@ INPUT
 
     test("collects warnings from all validators", () => {
       const content = `ROLE
-   Three spaces (odd - line 2)
-  Two spaces (even - line 3)
-   Another odd (line 4)
+  Two spaces (even - line 2)
+   Three spaces (odd - line 3)
+  Two spaces (even - line 4)
+   Another odd (line 5)
 `;
       const feedback = validate(content);
       const warnings = feedback.filter(f => f.type === "warning");
       
       // Should have warnings for odd indentation (lines 2 and 4)
       expect(warnings.length).toBe(2);
-      expect(warnings[0].line).toBe(2);
-      expect(warnings[1].line).toBe(4);
+      expect(warnings[0].line).toBe(3);
+      expect(warnings[1].line).toBe(5);
     });
 
     test("continues validation even after UTF-8 error", () => {
-      const invalidBuffer = Buffer.from([0xC0, 0x80]);
-      const content = invalidBuffer.toString();
-      
-      const feedback = validate(content);
+      const invalidBuffer = Buffer.from([0x00, 0x80]);
+      const feedback = validate(invalidBuffer);
       
       // Should have UTF-8 error plus structure/section errors
       const utf8Error = feedback.some(f => f.message === "Prompt is not UTF8-encoded");
@@ -167,6 +163,7 @@ TASK
 ---
 OUTPUT
   Output
+---
 `;
       const feedback = validate(content, existingFeedback);
       
@@ -214,37 +211,23 @@ OUTPUT
       const feedback = validate(content);
       const lineNumbers = feedback.map(f => f.line);
       
-      for (let i = 1; i < lineNumbers.length; i++) {
-        expect(lineNumbers[i-1]).toBeLessThanOrEqual(lineNumbers[i]);
+      for (let i = 1, ln; i < lineNumbers.length; i++) {
+        ln = lineNumbers[i];
+        ln === null || isNaN(ln) || expect(lineNumbers[i-1]).toBeLessThanOrEqual(ln);
       }
     });
 
-    test("puts line:0 errors (UTF-8) at the beginning", () => {
-      const invalidBuffer = Buffer.from([0xC0, 0x80]);
+    test("puts line:null errors at the end", () => {
+      const invalidBuffer = Buffer.from([0x00, 0x80]);
       const content = invalidBuffer.toString();
       const feedback = validate(content);
       
-      expect(feedback[0].line).toBe(0);
-      expect(feedback[0].message).toContain("not UTF8-encoded");
-    });
-
-    test("sorts mixed line numbers correctly", () => {
-      const invalidBuffer = Buffer.from([0xC0, 0x80]);
-      const content = invalidBuffer.toString() + `ROLE
-    Three spaces
-  INPUT
-    Missing separator
-  `;
-      const feedback = validate(content);
-      const lineNumbers = feedback.map(f => f.line);
-      const sorted = [...lineNumbers].sort((a, b) => a - b);
-      
-      expect(lineNumbers).toEqual(sorted);
+      expect(feedback[feedback.length - 1].line).toBe(null);
     });
 
     test("maintains order for same line numbers", () => {
       const content = `ROLE
-    Three spaces (warning)
+   Three spaces (warning)
   \tTab error (error)
   `;
       const feedback = validate(content);
@@ -253,22 +236,11 @@ OUTPUT
       expect(line2Feedback.length).toBe(2);
     });
 
-    test("handles null/undefined line numbers as 0 for sorting", () => {
-      const invalidBuffer = Buffer.from([0xC0, 0x80]);
-      const content = invalidBuffer.toString();
-      const feedback = validate(content);
-      
+    test("Do not handles null/undefined line numbers as 0 for sorting", () => {
+      const invalidBuffer = Buffer.from([0x00, 0x80]);
+      const feedback = validate(invalidBuffer);  
       const zeroLineErrors = feedback.filter(f => f.line === 0);
-      const positiveLineErrors = feedback.filter(f => f.line > 0);
-      
-      expect(zeroLineErrors.length).toBeGreaterThan(0);
-      
-      // All zero-line errors should come first
-      if (positiveLineErrors.length > 0) {
-        const lastZeroIndex = feedback.findLastIndex(f => f.line === 0);
-        const firstPositiveIndex = feedback.findIndex(f => f.line > 0);
-        expect(lastZeroIndex).toBeLessThan(firstPositiveIndex);
-      }
+      expect(zeroLineErrors.length).toBe(0);
     });
 
   });

@@ -53,24 +53,20 @@ const getLines = require("./getLines");
  * checkLineStructure("  bad\r\rline", feedback);
  * // feedback[0].type → "error"
  */
+const INVALID_ENDING_RE = /\r\r|\n\r/, NEWLINE_RE = /\r\r|\n\r|\r\n|\n|\r/g;
 const checkLineStructure = (content, feedback) => {
   // Normalize input.
   feedback || (feedback = []);
   content || (content = "");
 
   // Line Endings
-  const invalidEndingRegex = /\r\r|\n\r/g;
-  let match;
-
-  while ((match = invalidEndingRegex.exec(content)) !== null) {
-    // Calculate the line number by counting \n characters 
-    // from the start of the file up to this match index
-    const i = content.slice(0, match.index).split("\n").length;
-
-    feedback.push({
+  const arr = content.match(NEWLINE_RE) || [],
+    o = !(content.startsWith("\n") || content.startsWith("\r"));
+  for (let i = 0, l = arr.length; i !== l; ++i) {
+    INVALID_ENDING_RE.test(arr[i]) && feedback.push({
       type: "error",
-      message: `Invalid line endings ("${match[0] === "\r\r" ? "\\r\\r" : "\\n\\r"}"). Use LF (\\n) or CRLF (\\r\\n) only.`,
-      line: i + 1
+      message: `Invalid line endings. Use LF (\\n) or CRLF (\\r\\n) only.`,
+      line: i + 1 + o
     });
   }
 

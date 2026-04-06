@@ -88,6 +88,9 @@ const validate = (content, feedback) => {
   isValidUTF8(content)
     || feedback.push({ type: "error", message: `Prompt is not UTF8-encoded`, line: null });
 
+  // Convert to string for further validation.
+  Buffer.isBuffer(content) && (content = content.toString('utf8'));
+
   // Check prompt line structure.
   checkLineStructure(content, feedback);
 
@@ -95,8 +98,10 @@ const validate = (content, feedback) => {
   checkSections(content, feedback);
 
   // Return reordered feedback by line.
-  return feedback.sort((a, b) => (a.line || 0) - (b.line || 0));
+  return feedback.sort((a, b) => (getLineNumForSort(a.line) - getLineNumForSort(b.line)));
 }
+
+const getLineNumForSort = line => (line === null || line === undefined) && Infinity || line || 0;
 
 /**
  * @ignore

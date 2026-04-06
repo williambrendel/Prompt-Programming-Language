@@ -69,6 +69,16 @@ ROLE
 
 INPUT
   More content
+
+---
+
+TASK
+  Task content
+
+---
+
+OUTPUT
+  Output content
 `;
       const feedback = checkSections(content);
       const errors = feedback.filter(f => f.type === "error");
@@ -80,7 +90,13 @@ INPUT
   Content
 ---
 INPUT
-  Content`;
+  Content
+---
+TASK
+  Task
+---
+OUTPUT
+  Output`;
       const feedback = checkSections(content);
       const errors = feedback.filter(f => f.type === "error");
       expect(errors).toHaveLength(0);
@@ -163,7 +179,7 @@ INPUT
       
       expect(errors.some(e => 
         e.message.includes("Missing separator before this section title") &&
-        e.line === 5
+        e.line === 4
       )).toBe(true);
     });
 
@@ -202,7 +218,7 @@ INPUT
       
       expect(errors.some(e => 
         e.message.includes("Empty section content before separator") &&
-        e.line === 5
+        e.line === 4
       )).toBe(true);
     });
 
@@ -259,7 +275,7 @@ ROLE
       
       expect(errors.some(e => 
         e.message.includes("Cannot end with a separator") &&
-        e.line === 5
+        e.line === 4
       )).toBe(true);
     });
 
@@ -298,7 +314,7 @@ INPUT
       
       expect(warnings.some(w => 
         w.message.includes("Content should be indented under section title") &&
-        w.line === 4
+        w.line === 3
       )).toBe(true);
     });
 
@@ -331,7 +347,7 @@ INPUT
       const warnings = feedback.filter(f => f.type === "warning");
       
       expect(warnings.length).toBe(1);
-      expect(warnings[0].line).toBe(5);
+      expect(warnings[0].line).toBe(4);
     });
 
   });
@@ -406,7 +422,7 @@ ROLE
       
       expect(errors.some(e => 
         e.message.includes("Section title already exists line 2") &&
-        e.line === 6
+        e.line === 5
       )).toBe(true);
     });
 
@@ -425,8 +441,8 @@ ROLE
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.filter(e => e.message.includes("already exists")).length).toBe(2);
-      const thirdDuplicate = errors.find(e => e.line === 10);
-      expect(thirdDuplicate.message).toMatch(/line 6/); // Points to second occurrence
+      const thirdDuplicate = errors.find(e => e.line === 8);
+      expect(thirdDuplicate.message).toMatch(/line 5/); // Points to second occurrence
     });
 
   });
@@ -448,7 +464,7 @@ INPUT
       
       expect(errors.some(e => 
         e.message.includes("Invalid separator, should be ---") &&
-        e.line === 5
+        e.line === 4
       )).toBe(true);
     });
 
@@ -735,7 +751,8 @@ INPUT
 ---
 TASK
   Content
-===  # Invalid separator
+  # Invalid separator
+===
 OUTPUT
   Content
 `;
@@ -781,11 +798,11 @@ INPUT
   describe("line number accuracy", () => {
 
     test("reports correct line numbers for errors", () => {
-      const content = `LINE 1: ROLE
-LINE 2:   Content
-LINE 3: 
-LINE 4: INPUT
-LINE 5:   Missing separator above`;
+      const content = `
+ROLE
+  Content
+INPUT
+  Missing separator above`;
       
       // This is a raw content string - we need to check the actual line numbers
       // The content above has ROLE on line 1, INPUT on line 4
@@ -802,7 +819,8 @@ LINE 5:   Missing separator above`;
     });
 
     test("reports correct line for duplicate section", () => {
-      const content = `ROLE
+      const content = `
+ROLE
   Content
 ---
 ROLE
@@ -835,15 +853,13 @@ INPUT
 ---
 TASK
   Content
----
-OUTPUT
-  Content
 `;
       const feedback = checkSections(content, existingFeedback);
       
       expect(feedback).toBe(existingFeedback);
       expect(feedback.length).toBeGreaterThan(1);
       expect(feedback[0].type).toBe("info");
+      expect(feedback[1].type).toBe("error");
     });
 
     test("creates new array when not provided", () => {

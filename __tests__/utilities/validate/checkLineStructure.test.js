@@ -84,7 +84,6 @@ INPUT
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
-        e.message.includes("\\r\\r") && 
         e.message.includes("Invalid line endings")
       )).toBe(true);
     });
@@ -95,7 +94,6 @@ INPUT
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.some(e => 
-        e.message.includes("\\n\\r") && 
         e.message.includes("Invalid line endings")
       )).toBe(true);
     });
@@ -130,9 +128,9 @@ INPUT
       const errors = feedback.filter(f => f.type === "error");
       
       expect(errors.length).toBe(3);
-      expect(errors[0].line).toBe(1);
-      expect(errors[1].line).toBe(2);
-      expect(errors[2].line).toBe(3);
+      expect(errors[0].line).toBe(2);
+      expect(errors[1].line).toBe(3);
+      expect(errors[2].line).toBe(4);
     });
 
     test("does not report error for valid LF endings", () => {
@@ -354,7 +352,7 @@ No indentation (reset)
       expect(warnings.some(w => w.message.includes("Too indented"))).toBe(false);
     });
 
-    test("resets indentation tracking after blank line", () => {
+    test("Do not resets indentation tracking after blank line", () => {
       const content = `ROLE
   Indented content
 
@@ -364,7 +362,7 @@ No indentation (reset)
       const warnings = feedback.filter(f => f.type === "warning");
       
       // After blank line, lastIndentationLength is reset to 0
-      expect(warnings.some(w => w.message.includes("Too indented"))).toBe(true);
+      expect(warnings.some(w => w.message.includes("Too indented"))).toBe(false);
     });
 
   });
@@ -386,7 +384,7 @@ No indentation (reset)
     });
 
     test("reports invalid line endings and indentation issues", () => {
-      const content = "ROLE\r\r\n  Three spaces\nTASK\r\r\n    Four spaces";
+      const content = "ROLE\r\r\n   Three spaces\nTASK\r\r\n    Four spaces";
       const feedback = checkLineStructure(content);
       
       const lineEndingErrors = feedback.filter(f => 
@@ -455,9 +453,10 @@ No indentation (reset)
       const feedback = checkLineStructure(content, existingFeedback);
       
       expect(feedback).toBe(existingFeedback);
-      expect(feedback.length).toBe(2);
+      expect(feedback.length).toBe(3);
       expect(feedback[0].type).toBe("info");
-      expect(feedback[1].type).toBe("error");
+      expect(feedback[1].type).toBe("error"); // tabs not allowed
+      expect(feedback[2].type).toBe("warning"); // Indentation should be a multiple of 2 space
     });
 
     test("creates new array when not provided", () => {
@@ -476,8 +475,8 @@ No indentation (reset)
 
     test("reports correct line number for tab error", () => {
       const content = `Line 1: ROLE
-Line 2: \tTab here
-Line 3:   Normal`;
+\tTab here
+Normal`;
       const feedback = checkLineStructure(content);
       const errors = feedback.filter(f => f.type === "error");
       

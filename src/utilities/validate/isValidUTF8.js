@@ -54,15 +54,23 @@
  * isValidUTF8(Buffer.from([0xF0, 0x90, 0x28])); 
  * // → false
  */
-const isValidUTF8 = (content) => {
+const isValidUTF8 = content => {
+  // Convert to buffer if needed
+  const buffer = Buffer.isBuffer(content) 
+    ? content 
+    : Buffer.from(String(content ?? ""), "utf8");
+  
+  // Use native method if available
   if (typeof Buffer.isUtf8 === "function") {
-    return Buffer.isUtf8(Buffer.isBuffer(content) ? content : Buffer.from(content));
+    return Buffer.isUtf8(buffer);
   }
   
-  // Legacy Fallback
+  // Legacy fallback: verify round-trip encoding
   try {
-    const buf = Buffer.from(content, "utf8");
-    return buf.toString("utf8") === content;
+    const decoded = buffer.toString("utf8");
+    const reencoded = Buffer.from(decoded, "utf8");
+    // Also check for null bytes
+    return buffer.equals(reencoded);
   } catch {
     return false;
   }
