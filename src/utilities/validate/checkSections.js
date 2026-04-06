@@ -112,18 +112,17 @@ const checkSections = (content, feedback) => {
         lastTitle && !hasSectionContent
           && feedback.push({ type: "error", message: `Missing content between "${lastTitle}" section and ${isSep && "separator" || "section"} "${title}"`, line: i + 1 });
 
-        // Duplicate section.
         isSep || (
+          // Duplicate section.
           titles.has(title) && feedback.push({ type: "error", message: `Section "${title}" already exists`, line: i + 1 }),
-          titles.add(title)
-        );
-
-        isSep || (
+          // Add title to the set.
+          titles.add(title),
           // Reset content section flag.
           hasSectionContent = false,
           // Update the last title.
           lastTitle = title
         );
+
       } else {
         hasSectionContent = true;
         feedback.push({ type: "warning", message: `Line "${title}" should be indented under a section`, line: i + 1 });
