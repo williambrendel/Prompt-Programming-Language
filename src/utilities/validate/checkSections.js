@@ -112,6 +112,7 @@ const checkSections = (content, feedback) => {
         lastTitle && !hasSectionContent
           && feedback.push({ type: "error", message: `Missing content between "${lastTitle}" section and ${isSep && "separator" || "section"} "${title}"`, line: i + 1 });
 
+        // Remaining checks and update if real section title.
         isSep || (
           // Duplicate section.
           titles.has(title) && feedback.push({ type: "error", message: `Section "${title}" already exists`, line: i + 1 }),
