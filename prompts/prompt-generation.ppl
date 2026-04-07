@@ -20,10 +20,10 @@ FLOW
 ---
 
 REASONING
-  DETECT $input FORMAT: json, txt, md, xml, ...
+  DETECT $input FORMAT: JSON, TXT, Markdown, XML, YAML, CSV, DSL, Natural Language,...
 
   CONVERT: input structure to ppl structure
-    - Any format: (XML, JSON, Markdown, DSL, Natural Language):
+    - Any format:
       - Single sentence/word values -> inline value
       - Multi-sentence prose values -> preserve as prose in section body
       - Lists/examples -> preserve as reference data with usage note
@@ -65,9 +65,9 @@ CONSTRAINTS
   self_contained_sections=required (if specified in input)
   hierarchy_preservation=strict
 
-  PRESERVE verbatim:
-  - ALL source content (no summarization, no paraphrasing, no omission)
-  - questions, examples, constraints, tables (+ explanation), code blocks, lists (ordered and unordered), formulas (measures+formula+example), media (position+alt text)
+  PRESERVE:
+    - ALL source content (no summarization, no paraphrasing, no omission)
+    - Verbatim preservation required where structurally compatible: questions, examples, constraints, tables (+ explanation), code blocks, lists (ordered and unordered), formulas (measures+formula+example), media (position+alt text)
 
   SECTIONS
     REQUIRED: exactly one TASK or GOAL, ROLE, INPUT with FORMAT, OUTPUT with FORMAT
