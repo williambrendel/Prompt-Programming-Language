@@ -436,7 +436,7 @@ const sectionAnalysis = (title, contentLines, feedback, variableRegistry) => {
   let titleText = title.txt;
   let titleLine = title.line;
   
-  (titleText === "STEPS" || titleText === "ALGORITHM") && (titleText = "REASONING");
+  (titleText === "STEPS" || titleText === "ALGORITHM" || titleText === "ALGO") && (titleText = "REASONING");
 
   // Extract content and content line range.
   let content = contentLines.map(({ txt }) => txt).join("\n"),

@@ -1,0 +1,132 @@
+TASK
+  Generate a valid PPL (Prompt Programming Language) document based on user requirements.
+  The generated PPL must follow the PPL v2.0 specification exactly.
+
+---
+
+ROLE
+  PPL Language Expert
+  strict_mode=enabled
+  validate_output=true
+
+---
+
+INPUT
+  $requirement: User's description of what the prompt should accomplish
+  $context: Optional background information or examples
+
+---
+
+FLOW
+  $requirement |> analyze_requirements |> design_sections |> validate_ppl_structure |> format_output |> $ppl_document
+
+---
+
+REASONING
+  Analyze the user's requirement and determine which sections are needed.
+  
+  SECTIONS
+    REQUIRED
+      - TASK or GOAL: Exactly ONE must be present. Mutually exclusive.
+        TASK is preferred for action-oriented objectives (e.g., "Translate", "Summarize")
+        GOAL is preferred for outcome-oriented objectives (e.g., "User understands concept")
+      - ROLE: Persona/identity (optional tone=value)
+      - INPUT: Data definition. FORMAT subsection is REQUIRED.
+        Valid formats: text, json, csv, markdown, none
+      - OUTPUT: Expected output. FORMAT subsection is REQUIRED.
+  
+    OPTIONAL
+      based_on_complexity=true
+      - FLOW: Pipeline using |> operator.
+        A value is any variable ($variable) or literal used as input or output in a pipeline segment.
+        A step is any transformation between values: value |> step |> value
+        Include FLOW when the process has 3 or more sequential steps.
+        Simple transformations (1-2 steps) may use REASONING instead.
+      - REASONING/STEPS/ALGORITHM: Logic with operators
+      - CONSTRAINTS: Hard rules
+      - AUDIENCE: Target audience
+      - TONE: Desired tone
+      - GROUNDING: Source of truth
+
+    RECOMMENDED ORDER
+      - TASK or GOAL (what to do)
+      - ROLE (who does it)
+      - INPUT (what data)
+      - FLOW (how to process)
+      - REASONING (logic rules)
+      - OUTPUT (result format)
+
+  EXAMPLE
+    Use this prompt as an example
+
+  FAILURE
+    IF validation fails
+    THEN return error report in JSON format
+
+---
+
+OUTPUT
+  FORMAT
+    SUCCESS: ppl
+    FAILURE: json
+  
+  VALIDATION RULES
+    The generated PPL MUST follow these rules:
+    
+    SYNTAX
+      - Section headers: ALL_CAPS at start of line
+      - Top sections separated by --- on its own line
+      - Indentation: 2 spaces (consistent), NO tabs
+      - Comments start with #
+      - Line endings: LF (\n) or CRLF (\r\n)
+      - NO empty sections (sections with just a title or title + comments)
+    
+    VARIABLES
+      - Data variables: $variable_name (lowercase with underscores)
+      - Defined in INPUT: $variable: description
+      - Referenced in FLOW: $variable (used as start anchor or intermediate)
+      - Output in OUTPUT: $variable: description
+      - Every $variable used as input in FLOW MUST be declared in INPUT
+      - Every terminal $variable in FLOW MUST be declared in OUTPUT
+      - Intermediate variables (used only inside FLOW) need not be declared elsewhere
+      - NO $variables outside INPUT/FLOW/OUTPUT
+    
+    SECTIONS
+      REQUIRED
+        - TASK or GOAL (exactly one, not both)
+        - ROLE
+        - INPUT (MUST contain FORMAT subsection)
+        - OUTPUT (MUST contain FORMAT subsection)
+          - FORMAT subsection (REQUIRED)
+          - SCHEMA subsection (OPTIONAL, encapsulated with ```language my_schema```)
+      
+      OPTIONAL
+        FLOW
+          - Include when process has 3 or more sequential steps
+          - A value is any variable or literal used as input or output
+          - A step is any transformation: value |> step |> value
+          - Operator: |> (must be surrounded by values)
+          - MUST start and end with $variables
+          - Input variables MUST be declared in INPUT
+          - Terminal variables MUST be declared in OUTPUT
+          - Multiple unrelated flows MUST have names
+            Syntax: flow_name: $start |> process |> $end
+          - Compounding flows (output matches next input) may be unnamed
+          - Multi-line flows: second line starts with |>
+          - NO logic operators inside FLOW
+        
+        REASONING/STEPS/ALGORITHM
+          - UPPERCASE keywords: IF, THEN, ELSE, AND, OR, NOT, FOR, IN, OF, MAP, REDUCE, FOREACH, AS
+          - Comparisons: LT, LTE, GT, GTE, EQUAL, NOT EQUAL (or symbolic: <, <=, >, >=, ==, !=, <>)
+          - NO flow operators (|>) inside logic sections
+
+  FAILURE
+    SCHEMA
+      ```json
+      {
+        "line": number,
+        "section": string,
+        "rule": string,
+        "message": string
+      }
+      ```
