@@ -44,6 +44,7 @@ REASONING
         Simple transformations (1-2 steps) may use REASONING instead.
       - REASONING/STEPS/ALGORITHM: Logic with operators
       - CONSTRAINTS: Hard rules
+        As separate section or a sub-section under FLOW or REASONING/STEPS/ALGORITHM
       - AUDIENCE: Target audience
       - TONE: Desired tone
       - GROUNDING: Source of truth
