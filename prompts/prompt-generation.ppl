@@ -1,126 +1,109 @@
 TASK
-  Generate a valid PPL (Prompt Programming Language) document based on user requirements.
-  The generated PPL must follow the PPL v2.0 specification exactly.
+  Generate a valid PPL v2.0 document from input.
 
 ---
 
 ROLE
-  PPL Language Expert
-  strict_mode=enabled
-  validate_output=true
+  PPL Language Expert and Translator
 
 ---
 
 INPUT
-  $requirement: User's description of what the prompt should accomplish or existing prompt in a different format
-  $context: Optional background information or examples
+  $input: User requirement or existing prompt
+  $context: Optional examples
 
 ---
 
 FLOW
-  $requirement + $context |> analyze_requirements |> design_sections |> validate_ppl_structure |> format_output |> $ppl_document
+  $input |> detect_format |> convert_to_ppl_structure |> extract_constraints |> map_to_sections |> draft_prose |> validate_output |> $output
 
 ---
 
 REASONING
-  Analyze the user's requirement and determine which sections are needed.
-  
+  DETECT $input FORMAT: json, txt, md, xml, ...
+
+  CONVERT: input structure to ppl structure
+    - Any format: (XML, JSON, Markdown, DSL, Natural Language):
+      - Single sentence/word values -> inline value
+      - Multi-sentence prose values -> preserve as prose in section body
+      - Lists/examples -> preserve as reference data with usage note
+      - Procedural instructions (numbered steps, sequential logic) -> convert to FLOW + REASONING steps
+      - Top-level categories, titles or tags -> become SECTION TITLES
+      - Nested content -> becomes subsection hierarchy (indented)
+    - XML: <tag attribute="value">content</tag> variable: attribute=value
+    - Markdown:`key: value` -> constraint variable
+    - DSL / Natural Language: key=value or key: value -> constraint variable
+
+  EXTRACT constraints by type from $input
+    - positive (MUST do)
+    - negative (MUST NOT do)
+    - formatting (how output should look)
+    - preservation (what to keep verbatim)
+    - audience (who the output is for)
+    - voice (tone, style, prohibited words/phrases)
+    - structure (section requirements, ordering)
+    - linguistic (patterns: rule of three, parallelism, participial openers, em dashes,... | adverbs: just, only, simply,... | transition phrases: filler words, segues,... | prohibited words and expressions...)
+
+  MAP each extracted constraint to the appropriate PPL section
+
+  DRAFT each section as prose following the mapped constraints
+
+  VALIDATE
+    All source constraints and elements must be present in output
+    IF any source constraint is missing OR any element is missing
+    THEN return error report (see FAILURE in OUTPUT)
+
+---
+
+CONSTRAINTS
+  strict_mode=enabled
+  sole_source_truth=enabled
+  no_padding=true
+  idempotence=required
+  section_ordering=deterministic
+  coverage_assertion=complete
+  self_contained_sections=required (if specified in input)
+  hierarchy_preservation=strict
+
+  PRESERVE verbatim:
+  - ALL source content (no summarization, no paraphrasing, no omission)
+  - questions, examples, constraints, tables (+ explanation), code blocks, lists (ordered and unordered), formulas (measures+formula+example), media (position+alt text)
+
   SECTIONS
-    REQUIRED
-      - TASK or GOAL: Exactly ONE must be present. Mutually exclusive.
-        TASK is preferred for action-oriented objectives (e.g., "Translate", "Summarize")
-        GOAL is preferred for outcome-oriented objectives (e.g., "User understands concept")
-      - ROLE: Persona/identity (optional tone=value)
-      - INPUT: Data definition. FORMAT subsection is REQUIRED.
-        Valid formats: text, json, csv, markdown, none
-      - OUTPUT: Expected output. FORMAT subsection is REQUIRED.
-  
-    OPTIONAL
-      based_on_complexity=true
-      - FLOW: Pipeline using |> operator.
-        A value is any variable ($variable) or literal used as input or output in a pipeline segment.
-        A step is any transformation between values: value |> step |> value
-        Include FLOW when the process has 3 or more sequential steps.
-        Simple transformations (1-2 steps) may use REASONING instead.
-      - REASONING/STEPS/ALGORITHM: Logic with operators
-      - CONSTRAINTS: Hard rules
-        As separate section or a sub-section under FLOW or REASONING/STEPS/ALGORITHM
-      - AUDIENCE: Target audience
-      - TONE: Desired tone
-      - GROUNDING: Source of truth
+    REQUIRED: exactly one TASK or GOAL, ROLE, INPUT with FORMAT, OUTPUT with FORMAT
+    ADDITIONAL: as needed based on extracted constraints (FLOW, REASONING, AUDIENCE, TONE, GROUNDING, CONSTRAINTS)
 
-    RECOMMENDED ORDER
-      - TASK or GOAL (what to do)
-      - ROLE (who does it)
-      - INPUT (what data)
-      - FLOW (how to process)
-      - REASONING (logic rules)
-      - OUTPUT (result format)
-
-  EXAMPLE
-    Use this prompt as an example
-
-  FAILURE
-    IF validation fails
-    THEN return error report in JSON format
+  RECOMMENDED ORDER: TASK/GOAL -> ROLE -> INPUT -> FLOW -> REASONING -> OUTPUT
 
 ---
 
 OUTPUT
-  FORMAT
-    SUCCESS: ppl
-    FAILURE: json
-  
-  VALIDATION RULES
-    The generated PPL MUST follow these rules:
-    
+  $output: PPL document
+  FORMAT: ppl (success) or json (failure)
+
+  EXAMPLE: Use this prompt as an example
+
+  RULES
     SYNTAX
-      - Section headers: ALL_CAPS at start of line
-      - Top sections separated by --- on its own line
-      - Indentation: 2 spaces (consistent), NO tabs
-      - Comments start with #
-      - Line endings: LF (\n) or CRLF (\r\n)
-      - NO empty sections (sections with just a title or title + comments)
-      - No citations [cite: x] or extra text
-    
+      - ALL_CAPS headers, --- separators, 2-space indent, no tabs
+      - # comments, LF/CRLF, no empty sections, no [cite:x]
+      - LOGICAL SYNTAX ORDERING: IF...THEN...ELSE...FINALLY, WHILE...DO, FOR...IN, FOR...OF, MAP...AS item => logic, REDUCE...AS item, acc => logic INITIAL val
+
     VARIABLES
-      - Data variables: $variable_name (lowercase with underscores)
-      - Defined in INPUT: $variable: description
-      - Referenced in FLOW: $variable (used as start anchor or intermediate)
-      - Output in OUTPUT: $variable: description
-      - Every $variable used as input in FLOW MUST be declared in INPUT
-      - Every terminal $variable in FLOW MUST be declared in OUTPUT
-      - Intermediate variables (used only inside FLOW) need not be declared elsewhere
-      - NO $variables outside INPUT/FLOW/OUTPUT
-    
-    SECTIONS
-      REQUIRED
-        - TASK or GOAL (exactly one, not both)
-        - ROLE
-        - INPUT (MUST contain FORMAT subsection)
-        - OUTPUT (MUST contain FORMAT subsection)
-          - FORMAT subsection (REQUIRED)
-          - SCHEMA subsection (OPTIONAL, encapsulated with ```language my_schema```)
-      
-      OPTIONAL
-        FLOW
-          - Include when process has 3 or more sequential steps
-          - A value is any variable or literal used as input or output
-          - A step is any transformation: value |> step |> value
-          - Operator: |> (must be surrounded by values)
-          - MUST start and end with $variables
-          - Input variables MUST be declared in INPUT
-          - Terminal variables MUST be declared in OUTPUT
-          - Multiple unrelated flows MUST have names
-            Syntax: flow_name: $start |> process |> $end
-          - Compounding flows (output matches next input) may be unnamed
-          - Multi-line flows: second line starts with |>
-          - NO logic operators inside FLOW
-        
-        REASONING/STEPS/ALGORITHM
-          - UPPERCASE keywords: IF, THEN, ELSE, FINALLY, AND, OR, NOT, FOR, IN, OF, MAP, REDUCE, FOREACH, AS
-          - Comparisons: LT, LTE, GT, GTE, EQUAL, NOT EQUAL (or symbolic: <, <=, >, >=, ==, !=, <>)
-          - NO flow operators (|>) inside logic sections
+      - DATA: $name (lowercase underscores). Input vars in INPUT, flow vars start/end with $, terminal vars in OUTPUT. NO $ outside INPUT/FLOW/OUTPUT.
+      - CONSTRAINT: name=value (no $), one per line. Use sub-section for long/structured constraints.
+
+    FLOW
+      - |> surrounded by values, start/end with $
+      - Unrelated flows need names: name: $start |> x |> $end
+      - Compounding flows (output matches next input) may be unnamed
+      - Multi-line: second line starts with |>
+      - No logic operators inside FLOW
+
+    REASONING
+      - UPPERCASE keywords: IF, THEN, ELSE, FINALLY, AND, OR, NOT, FOR, IN, OF, MAP, REDUCE, FOREACH, AS
+      - Comparisons: LT/LTE/GT/GTE/EQUAL/NOT EQUAL or symbols (<, <=, >, >=, ==, !=, <>)
+      - No |> inside logic sections
 
   FAILURE
     SCHEMA

@@ -373,7 +373,7 @@ REASONING
 | Operator | Syntax | Description |
 |----------|--------|-------------|
 | **Branch** | `IF...THEN...ELSE...FINALLY` | Conditional branching. |
-| **State Loop** | `WHILE condition` | Repeat while true. |
+| **State Loop** | `WHILE condition DO` | Repeat while true. |
 | **Key Loop** | `FOR key IN object` | Iterate over object keys. |
 | **Value Loop** | `FOR item OF list` | Iterate over list values. |
 | **Item Loop** | `FOREACH item => logic` | Short for `FOR item OF list`. |
