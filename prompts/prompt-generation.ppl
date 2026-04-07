@@ -12,13 +12,13 @@ ROLE
 ---
 
 INPUT
-  $requirement: User's description of what the prompt should accomplish
+  $requirement: User's description of what the prompt should accomplish or existing prompt in a different format
   $context: Optional background information or examples
 
 ---
 
 FLOW
-  $requirement |> analyze_requirements |> design_sections |> validate_ppl_structure |> format_output |> $ppl_document
+  $requirement + $context |> analyze_requirements |> design_sections |> validate_ppl_structure |> format_output |> $ppl_document
 
 ---
 
