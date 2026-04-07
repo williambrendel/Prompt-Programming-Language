@@ -28,7 +28,7 @@ REASONING
       - Multi-sentence prose values -> preserve as prose in section body
       - Lists/examples -> preserve as reference data with usage note
       - Procedural instructions (numbered steps, sequential logic) -> convert to FLOW + REASONING steps
-      - Top-level categories, titles or tags -> become SECTION TITLES
+      - Top-level categories, titles or tags -> become candidate SECTION TITLES
       - Nested content -> becomes subsection hierarchy (indented)
     - XML: <tag attribute="value">content</tag> variable: attribute=value
     - Markdown:`key: value` -> constraint variable
