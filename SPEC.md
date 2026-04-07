@@ -372,7 +372,7 @@ REASONING
 
 | Operator | Syntax | Description |
 |----------|--------|-------------|
-| **Branch** | `IF...THEN...ELSE` | Conditional branching. |
+| **Branch** | `IF...THEN...ELSE...FINALLY` | Conditional branching. |
 | **State Loop** | `WHILE condition` | Repeat while true. |
 | **Key Loop** | `FOR key IN object` | Iterate over object keys. |
 | **Value Loop** | `FOR item OF list` | Iterate over list values. |

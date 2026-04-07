@@ -5,7 +5,7 @@ const getLines = require("./getLines");
 const SPECIAL_CHARS_RE = /^[^a-zA-Z0-9]+$/;
 
 // Logic operators
-const STRICT_LOGIC_RE = />>>?=?|<<=?|[<>!]=|==|<>|&&|\|\||(?:\^|&|~|\|[^>\s])|\b(LT|GT|LTE|GTE|EQUAL|NOT EQUAL)\b|(\bIF\b.*?\b(IS|CONTAINS|THEN|ELSE|AND|OR|NOT)\b)|(\bFOR\b.*?\b(IN|OF)\b)|(\b(MAP|REDUCE|FOREACH)\b.*?\bAS\b)/;
+const STRICT_LOGIC_RE = />>>?=?|<<=?|[<>!]=|==|<>|&&|\|\||(?:\^|&|~|\|[^>\s])|\b(LT|GT|LTE|GTE|EQUAL|NOT EQUAL)\b|(\bIF\b.*?\b(IS|CONTAINS|THEN|ELSE|FINALLY|AND|OR|NOT)\b)|(\bFOR\b.*?\b(IN|OF)\b)|(\b(MAP|REDUCE|FOREACH)\b.*?\bAS\b)/;
 const CASE_INSENSITIVE_LOGIC_RE = new RegExp(STRICT_LOGIC_RE.source, "i");
 
 // Flow operators
@@ -137,7 +137,7 @@ const extractVariablesFromLine = (line) => {
  * ### Logic Operators (REASONING/STEPS/ALGORITHM sections)
  * | Rule | Severity |
  * |------|----------|
- * | Operators must be uppercase (LT, GT, IF, THEN, ELSE, AND, OR, NOT, CONTAINS, FOR, IN, OF, MAP, REDUCE, FOREACH, AS) | Error |
+ * | Operators must be uppercase (LT, GT, IF, THEN, ELSE, FINALLY, AND, OR, NOT, CONTAINS, FOR, IN, OF, MAP, REDUCE, FOREACH, AS) | Error |
  * | Operators cannot be used outside REASONING/STEPS/ALGORITHM sections | Error |
  *
  * ### Flow Syntax (FLOW section)

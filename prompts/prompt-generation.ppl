@@ -116,7 +116,7 @@ OUTPUT
           - NO logic operators inside FLOW
         
         REASONING/STEPS/ALGORITHM
-          - UPPERCASE keywords: IF, THEN, ELSE, AND, OR, NOT, FOR, IN, OF, MAP, REDUCE, FOREACH, AS
+          - UPPERCASE keywords: IF, THEN, ELSE, FINALLY, AND, OR, NOT, FOR, IN, OF, MAP, REDUCE, FOREACH, AS
           - Comparisons: LT, LTE, GT, GTE, EQUAL, NOT EQUAL (or symbolic: <, <=, >, >=, ==, !=, <>)
           - NO flow operators (|>) inside logic sections
 
