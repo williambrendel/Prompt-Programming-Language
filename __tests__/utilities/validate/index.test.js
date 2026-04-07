@@ -1,6 +1,9 @@
 "use strict";
 
 const validate = require("../../../src/utilities/validate");
+const fs = require("fs");
+const path = require("path");
+const prompt = fs.readFileSync(path.resolve(__dirname, "../../../prompts/prompt-generation.ppl"));
 
 describe("validate (orchestration)", () => {
 
@@ -335,6 +338,16 @@ INPUT
       expect(hasOddWarning).toBe(true);
       expect(hasMissingSeparator).toBe(true);
       expect(hasMissingSections).toBe(true);
+    });
+
+    // -- Default prompt validation ─────────────────────────────────────────────────
+    test("catches multiple structural issues in one document", () => {
+      const feedback = validate(prompt).filter(({ message }) => !(
+        message.includes("Flow operators ")
+        || message.includes("Comparison and logic operators ")
+        || message.includes("Undefined variable")
+      ));
+      expect(feedback.length).toBe(0);
     });
 
   });
