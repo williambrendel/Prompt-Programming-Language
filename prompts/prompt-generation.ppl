@@ -80,6 +80,7 @@ OUTPUT
       - Comments start with #
       - Line endings: LF (\n) or CRLF (\r\n)
       - NO empty sections (sections with just a title or title + comments)
+      - No citations [cite x] or extra text
     
     VARIABLES
       - Data variables: $variable_name (lowercase with underscores)
