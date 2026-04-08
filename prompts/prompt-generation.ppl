@@ -9,18 +9,20 @@ ROLE
 ---
 
 INPUT
+  FORMAT: JSON, TXT, Markdown, XML, YAML, CSV, DSL, Natural Language,...
+
   $input: User requirement or existing prompt
   $context: Optional examples
-
+  
 ---
 
 FLOW
-  $input |> detect_format |> convert_to_ppl_structure |> extract_constraints |> map_to_sections |> draft_prose |> validate_output |> $output
+  $input,$context |> detect_format |> convert_to_ppl_structure |> extract_constraints |> map_to_sections |> draft_prose |> validate_output |> $output
 
 ---
 
 REASONING
-  DETECT $input FORMAT: JSON, TXT, Markdown, XML, YAML, CSV, DSL, Natural Language,...
+  DETECT $input FORMAT
 
   CONVERT: input structure to ppl structure
     - Any format:
@@ -109,9 +111,9 @@ OUTPUT
     SCHEMA
       ```json
       {
-        "line": number,
-        "section": string,
-        "rule": string,
-        "message": string
+        "line": "number",
+        "section": "string",
+        "rule": "string",
+        "message": "string"
       }
       ```
