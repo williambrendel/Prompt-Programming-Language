@@ -1,6 +1,6 @@
 "use strict";
 
-const { getKeyword, isKeyword, isTitle, isVariable } = require("../src/utilities/nameUtils");
+const { getKeyword, isKeyword, isTitle, isVariable } = require("../../src/utilities/nameUtils");
 
 describe("nameUtils", () => {
 
@@ -28,16 +28,16 @@ describe("nameUtils", () => {
 
     describe("Boundary and mismatch cases", () => {
       test("returns false for strings shorter than the shortest keyword (IN/AS/OF/IF/TO)", () => {
-        expect(getKeyword("A")).toBe(false);
+        expect(getKeyword("A")).toBe("");
       });
 
       test("returns false for strings longer than the longest keyword (CONTINUE/EVALUATE/ITERATE)", () => {
-        expect(getKeyword("VERY_LONG_NON_KEYWORD")).toBe(false);
+        expect(getKeyword("VERY_LONG_NON_KEYWORD")).toBe("");
       });
 
       test("returns false for non-string types", () => {
-        expect(getKeyword(123)).toBe(false);
-        expect(getKeyword(null)).toBe(false);
+        expect(getKeyword(123)).toBe("");
+        expect(getKeyword(null)).toBe("");
       });
 
       test("returns false for valid strings that aren't keywords", () => {

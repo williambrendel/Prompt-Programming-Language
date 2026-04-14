@@ -48,7 +48,7 @@ const getKeyword = str => (
   && str.length >= MIN_KEYWORD_LENGTH
   && str.length <= MAX_KEYWORD_LENGTH
   && KEYWORDS.has(str = str.toUpperCase())
-  && str
+  && str || ""
 );
 
 /**
@@ -114,7 +114,7 @@ const isVariable = name => name && typeof name === "string" && name.length > 4 &
   name = name.toLowerCase(),
   name.startsWith("input") && name.length < 7
     || name.startsWith("output")
-);
+) || false;
 
 /**
  * @ignore
