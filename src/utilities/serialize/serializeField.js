@@ -6,6 +6,7 @@
 "use strict";
 
 const getLines = require("../getLines");
+const { getKeyword, isTitle, isVariable } = require("../nameUtils");
 const indentText = require("./indentText");
 
 /**
@@ -112,6 +113,25 @@ const serializeField = (name, value, indent = "  ", options) => {
         )
       )
   ) return "";
+
+  // Handles variables.
+  isVariable(name) && (options = {
+    objSerializer: require("./serializeVariable"),
+    createArray: true,
+    forceArray: true,
+    ...(options || {})
+  })
+
+  // Handles keywords.
+  const keyword = getKeyword(name);
+  if (keyword) {
+    return `${keyword}\n${indent}${serializeField(null, value, indent, options)}`;
+  }
+
+  // Handles titles.
+  if (isTitle(name)) {
+    return `${name}\n${indent}${serializeField(null, value, indent, options)}`;
+  }
 
   // Normalize input.
   const {
@@ -266,12 +286,12 @@ const serializeArray = (name, arr, indent, objSerializer = _serializeObject, for
   return !(forceArray && hasObject) && arr.length === 1 && (
     arr = arr[0],
     lines = getLines(arr),
-    lines.length === 1 && `${name}: ${lines[0]}`
-      || `${name}:\n${indentText(arr, indent)}`
+    lines.length === 1 && (name && `${name}: ${lines[0]}` || lines[0])
+      || (name && `${name}:\n${indentText(arr, indent)}` || indentText(arr, indent, false))
   ) || (
     arr.length && (
       arr = arr.map(x => `${indent}- ${indentText(x, indent + "  ", false)}`),
-      `${name}s[${arr.length}]:\n${arr.join("\n")}`
+      name && `${name}s[${arr.length}]:\n${arr.join("\n")}` || arr.join("\n")
     )
   ) || "";
 }
@@ -326,9 +346,9 @@ const createObjectSerializer = serializer => {
     obj = normalizeNewlines(obj);
     const lines = getLines(obj).filter(filterBlank);
     return lines.length === 1 && !hasNested && (
-      `${name}: ${lines[0]}`
+      name && `${name}: ${lines[0]}` || lines[0]
     ) || (
-      (hasNested || lines.length) && `${name}:\n${indentText(obj, indent)}`
+      (hasNested || lines.length) && (name && `${name}:\n${indentText(obj, indent)}` || indentText(obj, indent, false))
     ) || "";
   });
   try {

@@ -232,12 +232,12 @@ const serializeBlock = (block, indent, curIndent = "") => {
   );
 
   // Serialize, indent, and add inputs.
-  (inputs = serializeField("input", inputs, indent, { createArray: true, forceArray: true, objSerializer: serializeVariable })) && (
+  (inputs = serializeField("input", inputs, indent)) && (
     meta.push(indentText(inputs, indent))
   );
 
   // Serialize, indent, and add inputs.
-  (outputs = serializeField("output", outputs, indent, { createArray: true, forceArray: true, objSerializer: serializeVariable })) && (
+  (outputs = serializeField("output", outputs, indent)) && (
     meta.push(indentText(outputs, indent))
   );
 
@@ -261,7 +261,8 @@ const serializeBlock = (block, indent, curIndent = "") => {
   
   // Serialize, indent, and add DO.
   (_do = serializeField("DO", _do, indent)) && (
-    meta.push(indentText(_do, indent).replace(/DO([^\:]+|)\:\s*(\n|)/, `DO\n${indent + indent}`))
+    meta.push(indentText(_do, indent))
+    // meta.push(indentText(_do, indent).replace(/DO([^\:]+|)\:\s*(\n|)/, `DO\n${indent + indent}`))
   );
 
   subBlocks = subBlocks.map(b => serializeBlock(b, indent)).filter(x => x);
@@ -277,7 +278,8 @@ const serializeBlock = (block, indent, curIndent = "") => {
 
   // Serialize, indent, and add NEXT.
   (next = serializeField("NEXT", next, indent)) && (
-    meta.push(indentText(next, indent).replace(/NEXT([^\:]+|)\:\s*(\n|)/, `NEXT\n${indent + indent}`))
+    meta.push(indentText(next, indent))
+    // meta.push(indentText(next, indent).replace(/NEXT([^\:]+|)\:\s*(\n|)/, `NEXT\n${indent + indent}`))
   );
 
   if (comments && meta.length === 1 || !meta.length ) {

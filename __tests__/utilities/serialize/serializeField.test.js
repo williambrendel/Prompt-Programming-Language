@@ -444,11 +444,24 @@ describe("serializeField — PPL2 scenarios", () => {
     expect(result).toContain("  - filter results older than 1 year");
   });
 
-  test("serializes DO block as multi-line indented", () => {
-    const result = serializeField("DO", "tokenize $question\nproject into vector space", "  ");
-    expect(result).toMatch(/^DO:\n/);
+  test("serializes KEYWORD block as multi-line indented", () => {
+    let result = serializeField("NEXT", "tokenize $question\nproject into vector space", "  ");
+    expect(result).toMatch(/^NEXT\n/);
     expect(result).toContain("  tokenize $question");
     expect(result).toContain("  project into vector space");
+
+    result = serializeField("conditions", {
+      for: "item",
+      in: "object",
+      do: "print"
+    }, "  ");
+    expect(result).toMatch(/^conditions:\n/);
+    expect(result).toMatch(/\s+FOR\n/);
+    expect(result).toMatch(/\s+IN\n/);
+    expect(result).toMatch(/\s+DO\n/);
+    expect(result).toContain("    item");
+    expect(result).toContain("    object");
+    expect(result).toContain("    print");
   });
 
   test("serializes format field", () => {
