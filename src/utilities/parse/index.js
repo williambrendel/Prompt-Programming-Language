@@ -10,7 +10,7 @@ const parse = ppl => {
   const lines = getLines(ppl || "");
 
   // parse each line.
-  for (let i = 0, l = lines.length, line, indent, refIndent = "", trimmed; i !== l; ++i) {
+  for (let i = 0, l = lines.length, line, indent, refIndent = 0, trimmed; i !== l; ++i) {
     // Get line, and trimmed line, and current indent.
     line = lines[i];
     trimmed = line.trimStart();
