@@ -8,18 +8,38 @@
 /**
  * @constant {Set<string>} KEYWORDS
  * @private
- * @description A collection of reserved control flow and declaration keywords.
+ * @description A collection of reserved control flow and declaration keywords for actions.
  */
-const KEYWORDS = new Set([
+const ACTION_KEYWORDS = new Set([
   "DO", "EXECUTE", "RUN", "CHECK", "VALIDATE", "EVAL", "EVALUATE", "FAILURE",
-  "NEXT", "GOTO", "GO_TO", "GO TO", "TO", "IF", "THEN", "ELSE", "ELSEIF",
-  "ELSE_IF", "ELSE IF", "IF", "IF", "EACH", "FOR", "FOR", "FOR",
-  "WHILE", "WHILE", "WHILE", "LOOP", "LOOP", "LOOP", "CONTINUE",
-  "UNTIL", "BREAK", "RETURN", "STOP", "ITERATE", "FOREACH", "FOR_EACH",
-  "FOR EACH", "MAP", "REDUCE", "FILTER", "IN", "AS", "OF", "DEFINE",
+  "FAIL", "ERROR", "SUCCESS", "SEND",
+  "NEXT", "GOTO", "GO_TO", "GO TO", "TO", "LOOP", "CONTINUE",
+  "UNTIL", "BREAK", "RETURN", "STOP", "ITERATE",
+  "MAP", "REDUCE", "FILTER", "DEFINE",
   "DECLARE", "LET", "CONST", "VAR"
 ]);
 
+/**
+ * @constant {Set<string>} KEYWORDS
+ * @private
+ * @description A collection of reserved control flow and declaration keywords for logic.
+ */
+const LOGIC_KEYWORDS = new Set([
+  "IF", "THEN", "ELSE", "ELSEIF",
+  "ELSE_IF", "ELSE IF",
+  "FOR", "FOREACH", "FOR EACH", "WHILE",
+  "IN", "AS", "OF"
+]);
+
+/**
+ * @constant {Set<string>} KEYWORDS
+ * @private
+ * @description A collection of reserved control flow and declaration keywords.
+ */
+const KEYWORDS = new Set([
+  ...Array.from(ACTION_KEYWORDS),
+  ...Array.from(LOGIC_KEYWORDS)
+]);
 
 /** @private @type {number} Minimum length of any string in the KEYWORDS set. */
 let MIN_KEYWORD_LENGTH = Infinity;
@@ -36,19 +56,35 @@ KEYWORDS.forEach(v => {
  * @description Validates if a string is a reserved base keyword (case-insensitive).
  * 
  * @param {string} str - The string to check.
+ * @param {Set} [keywords=KEYWORDS] - The base set of keywords to check.
  * 
  * @returns {string} The uppercase keyword if found, otherwise "".
  * 
  * @example
  * getBaseKeyword("foreach"); // returns "FOREACH"
- * getBaseKeyword("apple");   // returns false
+ * getBaseKeyword("apple");   // returns ""
  */
-const getBaseKeyword = str => str && typeof str === "string"
+const getBaseKeyword = (str, keywords = KEYWORDS) => str && typeof str === "string"
   && str.length >= MIN_KEYWORD_LENGTH
   && str.length <= MAX_KEYWORD_LENGTH
-  && KEYWORDS.has(str = str.toUpperCase())
+  && keywords.has(str = str.toUpperCase())
   && str
   || "";
+
+/**
+ * @function getActionKeyword
+ * @description Validates if a string is a reserved action keyword (case-insensitive).
+ * 
+ * @param {string} str - The string to check.
+ * 
+ * @returns {string} The uppercase keyword if found, otherwise "".
+ * 
+ * @example
+ * getActionKeyword("foreach"); // returns "FOREACH"
+ * getActionKeyword("while"); // returns ""
+ * getActionKeyword("apple");   // returns ""
+ */
+const getActionKeyword = str => getBaseKeyword(str, ACTION_KEYWORDS);
 
 /**
  * @constant {RegExp} END_RE
@@ -101,6 +137,16 @@ const getKeyword = str => getEndKeyword(str) || getBaseKeyword(str);
  * @returns {boolean} True if the string is a reserved base keyword.
  */
 const isBaseKeyword = str => !!getBaseKeyword(str);
+
+/**
+ * @function isActionKeyword
+ * @description Boolean check for action keyword existence.
+ * 
+ * @param {string} str - The string to check.
+ * 
+ * @returns {boolean} True if the string is a reserved action keyword.
+ */
+const isActionKeyword = str => !!getActionKeyword(str);
 
 /**
  * @function isEndKeyword
@@ -238,10 +284,12 @@ const isVariable = name => name && typeof name === "string" && name.length > 4 &
  */
 module.exports = Object.freeze({
   getBaseKeyword,
+  getActionKeyword,
   getEndKeyword,
   getKeyword,
   getTitle,
   isBaseKeyword,
+  isActionKeyword,
   isEndKeyword,
   isKeyword,
   getBlockType,
