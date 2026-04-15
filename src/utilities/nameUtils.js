@@ -16,7 +16,7 @@ const ACTION_KEYWORDS = new Set([
   "NEXT", "GOTO", "GO_TO", "GO TO", "TO", "LOOP", "CONTINUE",
   "UNTIL", "BREAK", "RETURN", "STOP", "ITERATE",
   "MAP", "REDUCE", "FILTER", "DEFINE",
-  "DECLARE", "LET", "CONST", "VAR"
+  "DECLARE", "SET", "LET", "CONST", "VAR"
 ]);
 
 /**

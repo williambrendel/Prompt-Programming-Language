@@ -1,20 +1,24 @@
 "use strict";
 
 const getLines = require("../geLines");
+const tokenizeLines = require("./tokenizeLines");
 
 const parse = ppl => {
   // Init.
   const obj = {}, stack = [];
 
   // Get lines.
-  const lines = getLines(ppl || "");
+  const lines = tokenizeLines(getLines(ppl || ""));
 
   // parse each line.
-  for (let i = 0, l = lines.length, line, indent, refIndent = 0, trimmed; i !== l; ++i) {
-    // Get line, and trimmed line, and current indent.
-    line = lines[i];
-    trimmed = line.trimStart();
-    indent = line.length - trimmed.length;
+  for (let i = 0, l = lines.length, refLevel = 0; i !== l; ++i) {
+    // Get trimmed line, current indent and level.
+    const {
+      value,
+      trimmed = value,
+      line = trimmed,
+      level
+    } = lines[i];
 
     // Parse line.
   }
