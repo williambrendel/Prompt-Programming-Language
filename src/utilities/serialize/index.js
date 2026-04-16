@@ -81,14 +81,22 @@ const serialize = (obj, options) => {
   }
 
   const {
-    input,
+    user_input,
+    user_inputs = user_input,
+    userInput = user_inputs,
+    userInputs = userInput,
+    input = userInputs,
     inputs = input,
-    toAchieve,
+    mission,
+    to_achieve = mission,
+    toAchieve = to_achieve,
     task = toAchieve,
     tasks = task,
     goal = tasks,
     goals = goal,
-    output,
+    result: _result,
+    results = _result,
+    output = results,
     outputs = output
   } = obj;
   let {

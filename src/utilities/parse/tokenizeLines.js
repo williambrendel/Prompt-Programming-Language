@@ -242,6 +242,9 @@ const tokenizeLine = (line, indent, options) => {
   let trimmed = line.trimStart(), baseIndentLevel = line.length - trimmed.length;
   trimmed = trimmed.trimEnd().replace(SPLIT_RE, " "); // fully normalized
 
+  // Short-circuit for blank lines — preserve as-is.
+  if (!trimmed) return [createLine("", line, baseIndentLevel)];
+
   // Return cached line if found.
   const baseIndent = line.slice(0, baseIndentLevel),
     cacheKey = `${trimmed}|${indent}`,

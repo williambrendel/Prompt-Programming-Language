@@ -97,6 +97,23 @@ describe("tokenizeLines", () => {
     expect(result[6].value).toBe("@end");
   });
 
+  test("preserve blank lines", () => {
+    const input = [
+      "SET $x = 1",
+      "",
+      " ",
+      "IF $x THEN GOTO @end"
+    ];
+    const result = tokenizeLines(input, "  ", nocache);
+    expect(result).toHaveLength(9);
+    expect(result[1].value).toBe("$x = 1");
+    expect(result[2].value).toBe("");
+    expect(result[3].value).toBe("");
+    expect(result[3].indent).toBe(" ");
+    expect(result[3].level).toBe(1);
+    expect(result[4].value).toBe("IF");
+  });
+
   test("isolates base indentation between different lines", () => {
     const input = [
       "IF a THEN b",
