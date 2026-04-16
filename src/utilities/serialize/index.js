@@ -97,7 +97,8 @@ const serialize = (obj, options) => {
     result: _result,
     results = _result,
     output = results,
-    outputs = output
+    outputs = output,
+    ...other
   } = obj;
   let {
     indent,
@@ -146,12 +147,24 @@ const serialize = (obj, options) => {
     }, indent));
   } catch {}
 
+  // Get other blocks.
+  let _other;
+  try {
+    Object.values(other).length && (_other = serializeBlock({
+      title: "OTHER",
+      comments: "Extra info",
+      other: toArray(other)
+    }, indent));
+  } catch {}
+
+
   // Init results.
   const result = [];
 
   // Add sections.
   _inputs && result.push(_inputs);
   result.push(_goals);
+  _other && result.push(_other);
   result.push(_outputs);
 
   return result.join(sep);
