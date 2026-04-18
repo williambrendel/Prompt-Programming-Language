@@ -193,10 +193,10 @@ describe("nameUtils", () => {
         expect(getBlockType("SUBSTEP")).toBe("SUBSTEP");
       });
 
-      test("is case-insensitive", () => {
-        expect(getBlockType("goal")).toBe("GOAL");
-        expect(getBlockType("Step")).toBe("STEP");
-        expect(getBlockType("substep")).toBe("SUBSTEP");
+      test("is case-sensitive", () => {
+        expect(getBlockType("goal")).toBe("");
+        expect(getBlockType("Goal")).toBe("");
+        expect(getBlockType("GOAL")).toBe("GOAL");
       });
     });
 
@@ -223,7 +223,7 @@ describe("nameUtils", () => {
   describe("isBlockType", () => {
     test("returns true for block types", () => {
       expect(isBlockType("GOAL")).toBe(true);
-      expect(isBlockType("step")).toBe(true);
+      expect(isBlockType("goal")).toBe(false);
     });
 
     test("returns false for non-block types", () => {

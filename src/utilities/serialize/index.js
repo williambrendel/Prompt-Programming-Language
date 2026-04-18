@@ -8,7 +8,10 @@
 
 const serializeVariable = require("./serializeVariable");
 const serializeBlock = require("./serializeBlock");
+const serializeField = require("./serializeField");
 const indentText = require("./indentText");
+const { normalizeTitle } = require("./normalizeUtils");
+
 
 /**
  * @function serialize
@@ -148,15 +151,13 @@ const serialize = (obj, options) => {
   } catch {}
 
   // Get other blocks.
-  let _other;
-  try {
-    Object.values(other).length && (_other = serializeBlock({
-      title: "OTHER",
-      comments: "Extra info",
-      other: toArray(other)
-    }, indent));
-  } catch {}
-
+  let _other = [];
+  for (const k in other) {
+    try {
+      const res = serializeField(normalizeTitle(k), other[k], indent);
+      res && _other.push(res);
+    } catch {}
+  }
 
   // Init results.
   const result = [];
@@ -164,12 +165,31 @@ const serialize = (obj, options) => {
   // Add sections.
   _inputs && result.push(_inputs);
   result.push(_goals);
-  _other && result.push(_other);
+  result.push(..._other);
   result.push(_outputs);
 
   return result.join(sep);
 }
 
+/**
+ * @function toArray
+ * @private
+ * @description Ensures the input is returned as an array.
+ * 
+ * This utility function normalizes a value into an array format based on the following logic:
+ * 1. If the input is falsy (null, undefined, etc.), it returns an empty array [].
+ * 2. If the input is already an array, it returns the input as-is.
+ * 3. If the input is any other truthy value, it wraps it in a new array.
+ * 
+ * @param {*} x The value to be converted or wrapped.
+ * 
+ * @return {Array} An array representation of the input.
+ * 
+ * @example
+ * toArray(null);      // Returns []
+ * toArray([1, 2]);   // Returns [1, 2]
+ * toArray('hello');  // Returns ['hello']
+ */
 const toArray = x => !x && [] || (Array.isArray(x) && x) || [x];
 
 /**

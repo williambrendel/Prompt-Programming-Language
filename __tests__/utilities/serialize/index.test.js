@@ -19,6 +19,9 @@ const minimalObj = {
 };
 
 const fullExample = {
+  why: {
+    because: "test"
+  },
   inputs: [
     {
       name: "question",

@@ -177,20 +177,20 @@ const BLOCK_TYPES = new Set(["GOAL", "STEP", "SUBSTEP", "TASK"]);
 
 /**
  * @function getBlockType
- * @description Validates if a string is a reserved block type (case-insensitive).
+ * @description Validates if a string is a reserved block type (case-sensitive).
  *
  * @param {string} str - The string to check.
  *
  * @returns {string} The uppercase block type if found, otherwise empty string.
  *
  * @example
- * getBlockType("goal");    // → "GOAL"
+ * getBlockType("goal");    // → ""
+ * getBlockType("GOAL");    // → "GOAL"
  * getBlockType("SUBSTEP"); // → "SUBSTEP"
  * getBlockType("task");    // → ""
  */
 const getBlockType = str => (
-  str && typeof str === "string"
-  && BLOCK_TYPES.has(str = str.toUpperCase())
+  BLOCK_TYPES.has(str)
   && str || ""
 );
 
@@ -203,6 +203,33 @@ const getBlockType = str => (
  * @returns {boolean} True if the string is a reserved block type.
  */
 const isBlockType = str => !!getBlockType(str);
+
+/**
+ * @constant {RegExp} SPLIT_SP_RE
+ * @private
+ * @description Regular expression used to split strings by one or more whitespace characters globally.
+ */
+const SPLIT_SP_RE = /\s+/g;
+
+/**
+ * @function isBlock
+ * @description Validates if a string adheres to a specific block header format.
+ * The expected format is: "TYPE @block_name:" where TYPE is a valid block type
+ * determined by getBlockType().
+ * 
+ * @param {string} str - The line or string to validate.
+ * @returns {boolean} Returns true if the string matches the block header pattern.
+ * 
+ * @note This function utilizes the comma operator to perform multiple assignments 
+ * and side effects (like calling getBlockType) within a single expression.
+ */
+const isBlock = str => (
+  str = str.split(SPLIT_SP_RE),
+  getBlockType(str[0]),
+  str[1] && str[1].charCodeAt(0) === 64 && (
+    (str = str[str.length - 1]).charCodeAt(str[length - 1]) === 58
+  )
+);
 
 /**
  * @function isTitle
@@ -294,6 +321,7 @@ module.exports = Object.freeze({
   isKeyword,
   getBlockType,
   isBlockType,
+  isBlock,
   isTitle,
   isVariable
 });

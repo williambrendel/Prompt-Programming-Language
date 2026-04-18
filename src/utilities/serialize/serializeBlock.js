@@ -192,7 +192,8 @@ const serializeBlock = (block, indent, curIndent = "") => {
     steps = step,
     substep,
     substeps = substep,
-    children = substeps || steps || goals
+    children = substeps || steps || goals,
+    ...other
   } = block || {}, subBlocks = (Array.isArray(children) && children || (
     children && [children] || []
   )).filter(isBlock);
@@ -258,6 +259,12 @@ const serializeBlock = (block, indent, curIndent = "") => {
   (conditions = serializeField("condition", conditions, indent, { createArray: true })) && (
     meta.push(indentText(conditions, indent))
   );
+
+  // Serialize other stuff.
+  for (const k in other) {
+    const v = serializeField(k, conditions, indent);
+    v && meta.push(indentText(v, indent))
+  }
   
   // Serialize, indent, and add DO.
   (_do = serializeField("DO", _do, indent)) && (
