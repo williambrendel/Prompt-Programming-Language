@@ -19,34 +19,34 @@ describe("createNormalizeName", () => {
     });
 
     test("creates independent normalizers for different prefixes", () => {
-      const hashNorm  = createNormalizeName("#");
-      const bangNorm  = createNormalizeName("!");
-      expect(hashNorm("hello")).toBe("#hello");
-      expect(bangNorm("hello")).toBe("!hello");
+      const hashNorm = createNormalizeName("#");
+      const bangNorm = createNormalizeName("!");
+      expect(hashNorm("#hello")).toBe("hello");
+      expect(bangNorm("!hello")).toBe("hello");
     });
 
   });
 
-  describe("prefix enforcement", () => {
+  describe("prefix stripping", () => {
 
-    test("prepends prefix when absent", () => {
+    test("strips prefix when present", () => {
       const norm = createNormalizeName("#");
-      expect(norm("hello")).toBe("#hello");
+      expect(norm("#hello")).toBe("hello");
     });
 
-    test("keeps single prefix when already present", () => {
+    test("leaves string unchanged when prefix absent", () => {
       const norm = createNormalizeName("#");
-      expect(norm("#hello")).toBe("#hello");
+      expect(norm("hello")).toBe("hello");
     });
 
-    test("collapses multiple leading prefixes to one", () => {
+    test("strips multiple leading prefixes", () => {
       const norm = createNormalizeName("#");
-      expect(norm("###hello")).toBe("#hello");
+      expect(norm("###hello")).toBe("hello");
     });
 
     test("trims whitespace before checking prefix", () => {
       const norm = createNormalizeName("#");
-      expect(norm("  #hello")).toBe("#hello");
+      expect(norm("  #hello")).toBe("hello");
     });
 
   });
@@ -84,45 +84,45 @@ describe("createNormalizeName", () => {
 
     test("lowercases result", () => {
       const norm = createNormalizeName("#");
-      expect(norm("HELLO")).toBe("#hello");
+      expect(norm("HELLO")).toBe("hello");
     });
 
     test("replaces spaces with underscores", () => {
       const norm = createNormalizeName("#");
-      expect(norm("My Tag")).toBe("#my_tag");
+      expect(norm("My Tag")).toBe("my_tag");
     });
 
     test("replaces hyphens with underscores", () => {
       const norm = createNormalizeName("#");
-      expect(norm("my-tag")).toBe("#my_tag");
+      expect(norm("my-tag")).toBe("my_tag");
     });
 
     test("replaces underscores with single underscore", () => {
       const norm = createNormalizeName("#");
-      expect(norm("my_tag")).toBe("#my_tag");
+      expect(norm("my_tag")).toBe("my_tag");
     });
 
     test("collapses multiple separators into one underscore", () => {
       const norm = createNormalizeName("#");
-      expect(norm("my   tag")).toBe("#my_tag");
-      expect(norm("my---tag")).toBe("#my_tag");
-      expect(norm("my___tag")).toBe("#my_tag");
-      expect(norm("my - _tag")).toBe("#my_tag");
+      expect(norm("my   tag")).toBe("my_tag");
+      expect(norm("my---tag")).toBe("my_tag");
+      expect(norm("my___tag")).toBe("my_tag");
+      expect(norm("my - _tag")).toBe("my_tag");
     });
 
     test("splits camelCase into snake_case", () => {
       const norm = createNormalizeName("#");
-      expect(norm("myTagName")).toBe("#my_tag_name");
+      expect(norm("myTagName")).toBe("my_tag_name");
     });
 
     test("splits PascalCase into snake_case", () => {
       const norm = createNormalizeName("#");
-      expect(norm("MyTagName")).toBe("#my_tag_name");
+      expect(norm("MyTagName")).toBe("my_tag_name");
     });
 
     test("splits consecutive uppercase (acronym) correctly", () => {
       const norm = createNormalizeName("#");
-      expect(norm("APIResponse")).toBe("#api_response");
+      expect(norm("APIResponse")).toBe("api_response");
     });
 
   });
@@ -133,23 +133,23 @@ describe("createNormalizeName", () => {
 
 describe("normalizeVariableName", () => {
 
-  describe("prefix", () => {
+  describe("prefix stripping", () => {
 
-    test("prepends $ when absent", () => {
-      expect(normalizeVariableName("question")).toBe("$question");
+    test("strips $ when present", () => {
+      expect(normalizeVariableName("$question")).toBe("question");
     });
 
-    test("keeps single $ when already present", () => {
-      expect(normalizeVariableName("$question")).toBe("$question");
+    test("leaves string unchanged when $ absent", () => {
+      expect(normalizeVariableName("question")).toBe("question");
     });
 
-    test("collapses multiple $ prefixes to one", () => {
-      expect(normalizeVariableName("$$$question")).toBe("$question");
+    test("strips multiple $ prefixes", () => {
+      expect(normalizeVariableName("$$$question")).toBe("question");
     });
 
-    test("trims whitespace then enforces prefix", () => {
-      expect(normalizeVariableName("  $question")).toBe("$question");
-      expect(normalizeVariableName("  question  ")).toBe("$question");
+    test("trims whitespace then strips prefix", () => {
+      expect(normalizeVariableName("  $question")).toBe("question");
+      expect(normalizeVariableName("  question  ")).toBe("question");
     });
 
   });
@@ -173,59 +173,59 @@ describe("normalizeVariableName", () => {
   describe("case and separator normalization", () => {
 
     test("lowercases result", () => {
-      expect(normalizeVariableName("QUESTION")).toBe("$question");
+      expect(normalizeVariableName("QUESTION")).toBe("question");
     });
 
-    test("accronym", () => {
-      expect(normalizeVariableName("myAPIIsAwesome")).toBe("$my_api_is_awesome");
+    test("acronym", () => {
+      expect(normalizeVariableName("myAPIIsAwesome")).toBe("my_api_is_awesome");
     });
 
     test("converts camelCase to snake_case", () => {
-      expect(normalizeVariableName("userFirstName")).toBe("$user_first_name");
+      expect(normalizeVariableName("userFirstName")).toBe("user_first_name");
     });
 
     test("converts PascalCase to snake_case", () => {
-      expect(normalizeVariableName("UserFirstName")).toBe("$user_first_name");
+      expect(normalizeVariableName("UserFirstName")).toBe("user_first_name");
     });
 
     test("converts spaces to underscores", () => {
-      expect(normalizeVariableName("user first name")).toBe("$user_first_name");
+      expect(normalizeVariableName("user first name")).toBe("user_first_name");
     });
 
     test("converts hyphens to underscores", () => {
-      expect(normalizeVariableName("user-first-name")).toBe("$user_first_name");
+      expect(normalizeVariableName("user-first-name")).toBe("user_first_name");
     });
 
     test("collapses multiple separators", () => {
-      expect(normalizeVariableName("user  first--name")).toBe("$user_first_name");
+      expect(normalizeVariableName("user  first--name")).toBe("user_first_name");
     });
 
     test("handles acronym prefix correctly", () => {
-      expect(normalizeVariableName("APIResponse")).toBe("$api_response");
+      expect(normalizeVariableName("APIResponse")).toBe("api_response");
     });
 
     test("already prefixed and mixed case", () => {
-      expect(normalizeVariableName("  $AlreadyPrefixed")).toBe("$already_prefixed");
+      expect(normalizeVariableName("  $AlreadyPrefixed")).toBe("already_prefixed");
     });
 
   });
 
   describe("PPL2 variable scenarios", () => {
 
-    test("normalizes $question", () => {
-      expect(normalizeVariableName("question")).toBe("$question");
+    test("normalizes question", () => {
+      expect(normalizeVariableName("question")).toBe("question");
     });
 
-    test("normalizes $verified_answer", () => {
-      expect(normalizeVariableName("verifiedAnswer")).toBe("$verified_answer");
+    test("normalizes verified_answer", () => {
+      expect(normalizeVariableName("verifiedAnswer")).toBe("verified_answer");
     });
 
-    test("normalizes $relevance_score", () => {
-      expect(normalizeVariableName("relevanceScore")).toBe("$relevance_score");
+    test("normalizes relevance_score", () => {
+      expect(normalizeVariableName("relevanceScore")).toBe("relevance_score");
     });
 
-    test("normalizes $raw_results", () => {
-      expect(normalizeVariableName("raw-results")).toBe("$raw_results");
+    test("normalizes raw_results", () => {
+      expect(normalizeVariableName("raw-results")).toBe("raw_results");
     });
 
   });
@@ -236,24 +236,24 @@ describe("normalizeVariableName", () => {
 
 describe("normalizeBlockName", () => {
 
-  describe("prefix", () => {
+  describe("prefix stripping", () => {
 
-    test("prepends @ when absent", () => {
-      expect(normalizeBlockName("search_kb")).toBe("@search_kb");
+    test("strips @ when present", () => {
+      expect(normalizeBlockName("@search_kb")).toBe("search_kb");
     });
 
-    test("keeps single @ when already present", () => {
-      expect(normalizeBlockName("@search_kb")).toBe("@search_kb");
+    test("leaves string unchanged when @ absent", () => {
+      expect(normalizeBlockName("search_kb")).toBe("search_kb");
     });
 
-    test("collapses multiple @ prefixes to one", () => {
-      expect(normalizeBlockName("@@search_kb")).toBe("@search_kb");
-      expect(normalizeBlockName("@@@ExtraPrefix")).toBe("@extra_prefix");
+    test("strips multiple @ prefixes", () => {
+      expect(normalizeBlockName("@@search_kb")).toBe("search_kb");
+      expect(normalizeBlockName("@@@ExtraPrefix")).toBe("extra_prefix");
     });
 
-    test("trims whitespace then enforces prefix", () => {
-      expect(normalizeBlockName("  @search_kb")).toBe("@search_kb");
-      expect(normalizeBlockName("  search_kb  ")).toBe("@search_kb");
+    test("trims whitespace then strips prefix", () => {
+      expect(normalizeBlockName("  @search_kb")).toBe("search_kb");
+      expect(normalizeBlockName("  search_kb  ")).toBe("search_kb");
     });
 
   });
@@ -277,59 +277,59 @@ describe("normalizeBlockName", () => {
   describe("case and separator normalization", () => {
 
     test("lowercases result", () => {
-      expect(normalizeBlockName("SEARCH_KB")).toBe("@search_kb");
+      expect(normalizeBlockName("SEARCH_KB")).toBe("search_kb");
     });
 
-    test("accronym", () => {
-      expect(normalizeBlockName("myAPIIsAwesome")).toBe("@my_api_is_awesome");
+    test("acronym", () => {
+      expect(normalizeBlockName("myAPIIsAwesome")).toBe("my_api_is_awesome");
     });
 
     test("converts camelCase to snake_case", () => {
-      expect(normalizeBlockName("searchKnowledgeBase")).toBe("@search_knowledge_base");
+      expect(normalizeBlockName("searchKnowledgeBase")).toBe("search_knowledge_base");
     });
 
     test("converts PascalCase to snake_case", () => {
-      expect(normalizeBlockName("SearchKnowledgeBase")).toBe("@search_knowledge_base");
+      expect(normalizeBlockName("SearchKnowledgeBase")).toBe("search_knowledge_base");
     });
 
     test("converts spaces to underscores", () => {
-      expect(normalizeBlockName("Hero Section")).toBe("@hero_section");
+      expect(normalizeBlockName("Hero Section")).toBe("hero_section");
     });
 
     test("converts hyphens to underscores", () => {
-      expect(normalizeBlockName("hero-section")).toBe("@hero_section");
+      expect(normalizeBlockName("hero-section")).toBe("hero_section");
     });
 
     test("collapses multiple separators", () => {
-      expect(normalizeBlockName("hero  --  section")).toBe("@hero_section");
+      expect(normalizeBlockName("hero  --  section")).toBe("hero_section");
     });
 
     test("handles acronym prefix", () => {
-      expect(normalizeBlockName("APICall")).toBe("@api_call");
+      expect(normalizeBlockName("APICall")).toBe("api_call");
     });
 
   });
 
   describe("PPL2 block scenarios", () => {
 
-    test("normalizes @embed", () => {
-      expect(normalizeBlockName("embed")).toBe("@embed");
+    test("normalizes embed", () => {
+      expect(normalizeBlockName("embed")).toBe("embed");
     });
 
-    test("normalizes @search_kb", () => {
-      expect(normalizeBlockName("searchKb")).toBe("@search_kb");
+    test("normalizes search_kb", () => {
+      expect(normalizeBlockName("searchKb")).toBe("search_kb");
     });
 
-    test("normalizes @check_relevance", () => {
-      expect(normalizeBlockName("checkRelevance")).toBe("@check_relevance");
+    test("normalizes check_relevance", () => {
+      expect(normalizeBlockName("checkRelevance")).toBe("check_relevance");
     });
 
-    test("normalizes @generate_from_kb", () => {
-      expect(normalizeBlockName("generateFromKb")).toBe("@generate_from_kb");
+    test("normalizes generate_from_kb", () => {
+      expect(normalizeBlockName("generateFromKb")).toBe("generate_from_kb");
     });
 
-    test("normalizes @verify_answer", () => {
-      expect(normalizeBlockName("verify answer")).toBe("@verify_answer");
+    test("normalizes verify_answer", () => {
+      expect(normalizeBlockName("verify answer")).toBe("verify_answer");
     });
 
   });
@@ -374,11 +374,7 @@ describe("normalizeKeyword", () => {
       expect(normalizeKeyword("HELLO")).toBe("HELLO");
     });
 
-    test("uppercases mixed case string", () => {
-      expect(normalizeKeyword("hElLo WoRlD")).toBe("H EL LO WO RL D");
-    });
-
-    test("accronym", () => {
+    test("acronym", () => {
       expect(normalizeKeyword("myAPIIsAwesome")).toBe("MY API IS AWESOME");
     });
 

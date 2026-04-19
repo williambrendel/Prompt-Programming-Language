@@ -26,49 +26,53 @@ const K_RE2 = /([a-z0-9])([A-Z])/g;         // IsAwesome → Is_Awesome
 /**
  * @function createNormalizeName
  * @description A factory that creates a normalization function for a specific prefix.
+ * The returned function strips the given prefix if present, then normalizes the
+ * remaining string to lowercase snake_case.
  * @private
- * 
- * @param {string} pre - The character prefix to enforce (e.g., "$", "@").
- * 
+ *
+ * @param {string} pre - The prefix character to strip (e.g., "$", "@").
+ *
  * @returns {Function} A specialized normalization function.
- * 
+ *
  * @example
  * const customNormalizer = createNormalizeName("#");
- * console.log(customNormalizer("My Tag")); // "#my_tag"
+ * customNormalizer("#My Tag"); // → "my_tag"
+ * customNormalizer("My Tag");  // → "my_tag"
  */
 const createNormalizeName = pre => {
   const RE = new RegExp(`^\\${pre}+`);
   return name => name && (
-    name = `${name}`.trim(),
-    name.charAt(0) === pre && name.replace(RE, pre) || `${pre}${name}`
+    (name = `${name}`.trim()).charAt(0) === pre && name.replace(RE, "") || name
   ).replace(K_RE1, "$1_$2").replace(K_RE2, "$1_$2").replace(SP_RE, "_").toLowerCase() || ""
 }
 
 /**
  * @function normalizeVariableName
- * @description Normalizes a string to a lowercase snake_case variable prefixed with '$'.
- * 
+ * @description Strips a leading `$` prefix (if present) and normalizes the
+ * remaining string to lowercase snake_case.
+ *
  * @param {string} name - The raw string to transform.
- * 
- * @returns {string} The normalized variable name.
- * 
+ * @returns {string} The normalized variable name without prefix.
+ *
  * @example
- * normalizeVariableName("UserFirstName"); // "$user_first_name"
- * normalizeVariableName("  $AlreadyPrefixed"); // "$already_prefixed"
+ * normalizeVariableName("$UserFirstName");    // → "user_first_name"
+ * normalizeVariableName("  $AlreadyPrefixed"); // → "already_prefixed"
+ * normalizeVariableName("UserFirstName");      // → "user_first_name"
  */
 const normalizeVariableName = createNormalizeName("$");
 
 /**
  * @function normalizeBlockName
- * @description Normalizes a string to a lowercase snake_case block name prefixed with '@'.
- * 
+ * @description Strips a leading `@` prefix (if present) and normalizes the
+ * remaining string to lowercase snake_case.
+ *
  * @param {string} name - The raw string to transform.
- * 
- * @returns {string} The normalized block name.
- * 
+ * @returns {string} The normalized block name without prefix.
+ *
  * @example
- * normalizeBlockName("Hero Section"); // "@hero_section"
- * normalizeBlockName("@@ExtraPrefix"); // "@extra_prefix"
+ * normalizeBlockName("@Hero Section");  // → "hero_section"
+ * normalizeBlockName("@@ExtraPrefix");  // → "extra_prefix"
+ * normalizeBlockName("Hero Section");   // → "hero_section"
  */
 const normalizeBlockName = createNormalizeName("@");
 

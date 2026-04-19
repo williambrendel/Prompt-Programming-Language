@@ -28,9 +28,9 @@ const RE = /(\n)([^\n])/g;
  * const result = indentText("Hello\nWorld", "  ");
  * // returns: "  Hello\n  World"
  */
-const indentText = (text, indent = "  ", indentFirstLine = true) => text && (
+const indentText = (text, indent = "  ", indentFirstLine = true) => text && (indent && (
   (indentFirstLine && indent || "") + text.replace(RE, `$1${indent}$2`)
-) || "";
+) || text) || "";
 
 /**
  * @ignore

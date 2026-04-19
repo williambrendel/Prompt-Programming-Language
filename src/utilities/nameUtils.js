@@ -6,7 +6,7 @@
 "use strict";
 
 /**
- * @constant {Set<string>} KEYWORDS
+ * @constant {Set<string>} ACTION_KEYWORDS
  * @private
  * @description A collection of reserved control flow and declaration keywords for actions.
  */
@@ -16,11 +16,20 @@ const ACTION_KEYWORDS = new Set([
   "NEXT", "GOTO", "GO_TO", "GO TO", "TO", "LOOP", "CONTINUE",
   "UNTIL", "BREAK", "RETURN", "STOP", "ITERATE",
   "MAP", "REDUCE", "FILTER", "DEFINE",
-  "DECLARE", "SET", "LET", "CONST", "VAR"
+  "DECLARE", "SET", "LET", "CONST", "VAR",
 ]);
 
 /**
- * @constant {Set<string>} KEYWORDS
+ * @constant {Set<string>} SECTION_KEYWORDS
+ * @private
+ * @description A collection of reserved section keywords for logic.
+ */
+const SECTION_KEYWORDS = new Set([
+  "INPUT", "OUTPUT", "GOALS", "SUBGOALS", "STEPS", "SUBSTEPS", "TASKS", "SUBTASKS"
+]);
+
+/**
+ * @constant {Set<string>} LOGIC_KEYWORDS
  * @private
  * @description A collection of reserved control flow and declaration keywords for logic.
  */
@@ -38,7 +47,8 @@ const LOGIC_KEYWORDS = new Set([
  */
 const KEYWORDS = new Set([
   ...Array.from(ACTION_KEYWORDS),
-  ...Array.from(LOGIC_KEYWORDS)
+  ...Array.from(LOGIC_KEYWORDS),
+  ...Array.from(SECTION_KEYWORDS)
 ]);
 
 /** @private @type {number} Minimum length of any string in the KEYWORDS set. */
