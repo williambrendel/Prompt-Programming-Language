@@ -371,10 +371,11 @@ const serializeField = (key, val, options, root, serialized, isObj) => (
         && isTitle(serialized[serialized.length - 1].trim().split(" ")[0])
         && serialized.push("")
     ),
-    val = serialize(val, options.childrenPrefix && {...options, childrenPrefix: "", prefix: options.childrenPrefix } || options),
+    options.childrenPrefix && {...options, childrenPrefix: "", prefix: options.childrenPrefix },
+    val = serialize(val, options.childrenPrefix && {...options, childrenPrefix: "", prefix: options.childrenPrefix } || {...options, prefix: ""}),
     (isObj || (NEWLINE_TEST_RE.test(val) && val.charCodeAt(0) !== 10)) && (val = `\n${val}`) || val
   ) && serialized.push(
-    options.prefix === "$" && val === true && indentText(`$${key}`, !root && options.indent)
+    options.prefix === "$" && val === "true" && indentText(`$${key}`, !root && options.indent)
     || indentText(`${options.prefix || ""}${key}:${val.charCodeAt(0) !== 10 && " " || ""}${val}`, !root && options.indent)
   )
 );
