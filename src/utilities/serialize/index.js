@@ -210,10 +210,14 @@ const serialize = (block, options) => {
   serializeField("role", roles, options, root, serialized);
 
   // Serialize inputs.
-  serializeKeywordField("INPUT", inputs, { ...options, childrenPrefix: "$" }, root, serialized);
+  (Array.isArray(inputs) || typeof inputs !== "object") && 
+    serializeField("input", inputs, { ...options, childrenPrefix: "$" }, root, serialized) ||
+    serializeKeywordField("INPUT", inputs, { ...options, childrenPrefix: "$" }, root, serialized);
 
   // Serialize outputs.
-  serializeKeywordField("OUTPUT", outputs, { ...options, childrenPrefix: "$" }, root, serialized);
+  (Array.isArray(outputs) || typeof outputs !== "object") && 
+    serializeField("output", outputs, { ...options, childrenPrefix: "$" }, root, serialized) ||
+    serializeKeywordField("OUTPUT", outputs, { ...options, childrenPrefix: "$" }, root, serialized);
 
   // Serialize description.
   serializeField("description", descriptions, options, root, serialized);
@@ -355,8 +359,8 @@ const NEWLINE_REPLACE_RE = /\r?\n|\r/g;
  */
 const serializeField = (key, val, options, root, serialized, isObj) => (
   val && (
-    isObj = typeof val === "object" && !Array.isArray(val),
     options.prefix === "$" && (
+      typeof val !== "object" && (val = { descirption: val }),
       serialized.length
         && serialized[serialized.length - 1].trim().charCodeAt(0) === 36
         && serialized.push(""),
@@ -371,7 +375,7 @@ const serializeField = (key, val, options, root, serialized, isObj) => (
         && isTitle(serialized[serialized.length - 1].trim().split(" ")[0])
         && serialized.push("")
     ),
-    options.childrenPrefix && {...options, childrenPrefix: "", prefix: options.childrenPrefix },
+    isObj = typeof val === "object" && !Array.isArray(val),
     val = serialize(val, options.childrenPrefix && {...options, childrenPrefix: "", prefix: options.childrenPrefix } || {...options, prefix: ""}),
     (isObj || (NEWLINE_TEST_RE.test(val) && val.charCodeAt(0) !== 10)) && (val = `\n${val}`) || val
   ) && serialized.push(
@@ -456,7 +460,7 @@ const serializeField = (key, val, options, root, serialized, isObj) => (
 const serializeKeywordField = (key, val, options, root, serialized, isObj) => (
   val && val !== true && (
     isObj = typeof val === "object" && !Array.isArray(val),
-    val = serialize(val, options.childrenPrefix && {...options, childrenPrefix: "", prefix: options.childrenPrefix } || options),
+    val = serialize(val, options.childrenPrefix && {...options, childrenPrefix: "", prefix: options.childrenPrefix } || {...options, prefix: ""}),
     (isObj || (NEWLINE_TEST_RE.test(val) && val.charCodeAt(0) !== 10)) && (val = `\n${val}`) || val
   ) && (
     serialized.length && serialized.push(""),

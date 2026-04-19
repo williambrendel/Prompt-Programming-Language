@@ -5,16 +5,20 @@ const serialize = require("../../../src/utilities/serialize/index");
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 const minimalGoal = {
-  name: "answer_from_kb",
-  type: "GOAL",
-  steps: [{ name: "search", type: "STEP", do: ["retrieve top k"] }]
+  steps: {
+    search: {
+      do: ["retrieve top k"]
+    }
+  }
 };
 
-const minimalOutput = { name: "answer", description: "final answer" };
-const minimalInput  = { name: "question", description: "user question" };
+const minimalOutput = { answer: "final answer" }; // --> converted automatically into { description: "final answer" }
+const minimalInput  = { question: { description: "user question" } };
 
 const minimalObj = {
-  goals:   [minimalGoal],
+  goals:   {
+    answer_from_kb: minimalGoal
+  },
   outputs: [minimalOutput]
 };
 
@@ -451,21 +455,21 @@ describe("serialize — array input", () => {
 
 describe("serialize — output structure", () => {
 
-  test("contains OUTPUT keyword", () => {
-    expect(serialize(minimalObj)).toContain("OUTPUT");
+  test("contains output keyword (not OUTPOUT) when variables are mentioned, not defined", () => {
+    expect(serialize(minimalObj)).toContain("output");
   });
 
   test("contains GOALS keyword", () => {
     expect(serialize(minimalObj)).toContain("GOALS");
   });
 
-  test("contains INPUT keyword when inputs provided", () => {
+  test("contains input keyword (not INPUT) when variables are mentioned, not defined", () => {
     const result = serialize({
       inputs:  [minimalInput],
       goals:   [minimalGoal],
       outputs: [minimalOutput]
     });
-    expect(result).toContain("INPUT");
+    expect(result).toContain("input");
   });
 
   test("omits INPUT keyword when no inputs provided", () => {
