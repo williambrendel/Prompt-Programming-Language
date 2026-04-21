@@ -11,12 +11,12 @@
  * @description A collection of reserved control flow and declaration keywords for actions.
  */
 const ACTION_KEYWORDS = new Set([
-  "DO", "EXECUTE", "RUN", "CHECK", "VALIDATE", "EVAL", "EVALUATE", "FAILURE",
+  "DO", "DONE", "EXECUTE", "RUN", "CHECK", "VALIDATE", "EVAL", "EVALUATE", "FAILURE",
   "FAIL", "ERROR", "SUCCESS", "SEND",
   "NEXT", "GOTO", "GO_TO", "GO TO", "TO", "LOOP", "CONTINUE",
   "UNTIL", "BREAK", "RETURN", "STOP", "ITERATE",
   "MAP", "REDUCE", "FILTER", "DEFINE",
-  "DECLARE", "SET", "LET", "CONST", "VAR",
+  "DECLARE", "SET", "LET", "CONST", "VAR", "GET", "ADD", "PUSH"
 ]);
 
 /**
@@ -25,7 +25,8 @@ const ACTION_KEYWORDS = new Set([
  * @description A collection of reserved section keywords for logic.
  */
 const SECTION_KEYWORDS = new Set([
-  "INPUT", "OUTPUT", "GOALS", "SUBGOALS", "STEPS", "SUBSTEPS", "TASKS", "SUBTASKS"
+  "INPUT", "OUTPUT", "GOALS", "SUBGOALS", "STEPS", "SUBSTEPS", "TASKS", "SUBTASKS",
+  "CONTEXT", "AUDIENCE", "TONE", "VOICE", "AVOID", "FORBIDDEN"
 ]);
 
 /**

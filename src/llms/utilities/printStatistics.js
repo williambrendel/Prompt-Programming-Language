@@ -23,7 +23,19 @@ const printStatistics = response => {
     throw new Error("printStatistics: invalid response object");
   }
 
-  const { params, output, error } = response;
+  const {
+    input,
+    config: _config,
+    totalContentSize: _totalContentSize,
+    contentLength: _contentLength,
+    messages,
+    params,
+    output,
+    error
+  } = response || {};
+  const totalContentSize = (input || {}).totalContentSize || _totalContentSize;
+  const contentLength = _contentLength || (input || {}).contentLength || ((((input || {}).messages || messages || {})[0] || {}).content || []).length;
+  const config = _config || (input || {}).config;
 
   if (error) {
     console.error("\n🚨 Error:", error);
@@ -34,6 +46,14 @@ const printStatistics = response => {
     console.error("\n🚨 Error:", output.error);
     return;
   }
+
+  const {
+    stop_reason,
+    stop_reasons = stop_reason,
+    stopReason = stop_reasons,
+    stopReasons = stopReason,
+    stopped = stopReasons
+  } = output || {};
 
   const stats = response.stats || {};
   const {
@@ -66,6 +86,7 @@ const printStatistics = response => {
   // ── Header ────────────────────────────────────────────────────────────────
 
   console.log(`✅ Response received in ${duration}s`);
+  stopped && console.log(`${stopped === "end_turn" && "✅ " || "⚠️  "}Stopped: ${stopped}`);
 
   if (isBatch) {
     console.log(`   Requests: ${succeeded} succeeded, ${errored} errored`);
@@ -77,12 +98,21 @@ const printStatistics = response => {
     console.log("⚡ Caching: ENABLED");
   }
 
+  // ── Config ────────────────────────────────────────────────────────────────
+  if (config) {
+    console.log("\n⚙️  Config:");
+    console.log("─────────────────────────────────────");
+    printObject(config, 3);
+  }
+
   // ── Token usage ───────────────────────────────────────────────────────────
 
   const totalTokens = (inputTokens || 0) + (outputTokens || 0);
 
   console.log("\n💰 Token Usage:");
   console.log("─────────────────────────────────────");
+  console.log(`   Content length:  ${(contentLength  || 0).toLocaleString()}`);
+  console.log(`   Total input size:  ${(totalContentSize  || 0).toLocaleString()}`);
   console.log(`   Input tokens:  ${(inputTokens  || 0).toLocaleString()}`);
   console.log(`   Output tokens: ${(outputTokens || 0).toLocaleString()}`);
   console.log(`   Total tokens:  ${totalTokens.toLocaleString()}`);
@@ -119,6 +149,48 @@ const printStatistics = response => {
 
   console.log("─────────────────────────────────────\n");
 };
+
+/**
+ * @function printObject
+ * @private
+ * @description
+ * Recursively logs an object's key-value pairs to the console with hierarchical 
+ * indentation. Supports nested objects and arrays.
+ * 
+ * @param {Object} obj The target object to be printed.
+ * @param {number} [indent=0] The initial number of leading spaces for the current depth.
+ * @param {number} [indentStep=2] The number of spaces to add for each nested level of recursion.
+ * 
+ * @returns {void}
+ * 
+ * @example
+ * const config = { 
+ * port: 8080, 
+ * db: { host: "localhost", user: "admin" },
+ * flags: ["quiet", "debug"] 
+ * };
+ * printObject(config);
+ * // Output:
+ * // port: 8080
+ * // db:
+ * //   host: localhost
+ * //   user: admin
+ * // flags: [quiet, debug]
+ */
+const printObject = (obj, indent = 0, indentStep = 2) => {
+  const spaces = " ".repeat(indent);
+  
+  Object.entries(obj).forEach(([key, value]) => {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+        console.log(`${spaces}${key}:`);
+        printObject(value, indent + indentStep);
+    } else if (Array.isArray(value)) {
+        console.log(`${spaces}${key}: [${value.join(', ')}]`);
+    } else {
+        console.log(`${spaces}${key}: ${value}`);
+    }
+  });
+}
 
 /**
  * @ignore

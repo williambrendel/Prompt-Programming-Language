@@ -3,6 +3,7 @@
 const math = require("./math");
 const { correctQuery, createSpellingEngine } = require("./correctQuery");
 const printStatistics = require("./printStatistics");
+const getMediaType = require("./getMediaType");
 
 /**
  * @ignore
@@ -15,5 +16,6 @@ module.exports = Object.freeze({
   // Spell checking utilities.
   correctQuery,
   createSpellingEngine,
+  getMediaType,
   printStatistics
 });

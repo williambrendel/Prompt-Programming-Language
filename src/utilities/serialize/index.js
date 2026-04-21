@@ -107,16 +107,25 @@ const serialize = (block, options) => {
 
   // Input is a real object.
   let {
+    about,
+    context = about,
+    audience,
+    voice,
+    tone = voice,
     role,
     roles = role,
     comment,
     comments = comment,
     description,
     descriptions = description,
+    forbidden,
+    avoid = forbidden,
     origin,
     provenance = origin,
     condition,
     conditions = condition,
+    rule,
+    rules = rule,
     constraint,
     constraints = constraint,
     in: _in,
@@ -140,8 +149,10 @@ const serialize = (block, options) => {
     subtask,
     subtasks = subtask,
     format,
+    formats,
     required,
     schema,
+    schemas = schema,
     ...other
   } = block,
   children = subtasks || tasks || substeps || steps || subgoal || goals,
@@ -206,6 +217,14 @@ const serialize = (block, options) => {
     && serialized.push(`# ${comments}`.replace(NEWLINE_REPLACE_RE, "\n #"))
   );
 
+  // Serialize context.
+  root && serializeKeywordField("CONTEXT", context, options, root, serialized)
+    || serializeField("context", context, options, root, serialized);
+
+  // Serialize audience.
+  root && serializeKeywordField("AUDIENCE", audience, options, root, serialized)
+    || serializeField("audience", audience, options, root, serialized);
+
   // Serialize roles.
   serializeField("role", roles, options, root, serialized);
 
@@ -222,18 +241,29 @@ const serialize = (block, options) => {
   // Serialize description.
   serializeField("description", descriptions, options, root, serialized);
 
+  // Serialize tone.
+  root && serializeKeywordField("TONE", tone, options, root, serialized)
+    || serializeField("tone", tone, options, root, serialized);
+
+  // Serialize avoid.
+  root && serializeKeywordField("AVOID", avoid, options, root, serialized)
+    || serializeField("avoid", avoid, options, root, serialized);
+
   // Serialize format.
-  serializeField("format", format && (format = format.toLowerCase()), options, root, serialized);
+  serializeField("format", formats && (formats = formats.toLowerCase()), options, root, serialized);
 
   // Serialize schema.
-  schema && (
-    schema = typeof schema === "object" && JSON.stringify(schema, null, indent) || `${schema}`,
-    schema = "|" + indentText(`\n${schema}`, indent),
-    serialized.push(indentText(`schema: ${schema}`, !root && indent))
+  schemas && (
+    schemas = typeof schemas === "object" && JSON.stringify(schemas, null, indent) || `${schemas}`,
+    schemas = "|" + indentText(`\n${schemas}`, indent),
+    serialized.push(indentText(`schema: ${schemas}`, !root && indent))
   );
   
   // Serialize provenance.
   serializeField("provenance", provenance, options, root, serialized);
+
+  // Serialize rules.
+  serializeField("rules", rules, options, root, serialized);
 
   // Serialize constraints.
   serializeField("constraints", constraints, options, root, serialized);

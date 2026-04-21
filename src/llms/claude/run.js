@@ -91,30 +91,48 @@ const buildContent = require("./buildContent");
 const run = async (config, prompt, ...documents) => {
   const startTime = Date.now();
 
-  config = normalizeConfig(config);
-  const clientConfig = { apiKey: config.apiKey };
+  // Normalize input configuration.
+  const { apiKey, ..._config } = normalizeConfig(config) || {};
+  config = _config;
+  const clientConfig = { apiKey };
 
+  // Check for the API key.
   if (!clientConfig.apiKey) {
     const error = "ANTHROPIC_API_KEY environment variable not set\nCreate a .env file with: ANTHROPIC_API_KEY=your_api_key_here";
     console.error("❌ Error:", error);
     throw Error(error);
   }
 
-  const { content, cacheEnabled } = buildContent(prompt, ...documents);
+  // Get input content and caching options.
+  const { content, cacheEnabled, totalContentSize, contentLength } = buildContent(prompt, ...documents);
+
+  // Check if input content is empty
+  if (!totalContentSize) {
+    const error = "Content is missing or empty";
+    console.error("❌ Error:", error);
+    throw Error(error);
+  }
+
+  // Build API messages.
   const messages = [{ role: "user", content }];
 
+  // Set caching options to the API.
   if (cacheEnabled) {
     clientConfig.defaultHeaders = { "anthropic-beta": "prompt-caching-2024-07-31" };
   }
 
+  // Create the client.
   const client = new Anthropic(clientConfig);
-  const { pollInterval, onPoll, pricing, apiKey, ...modelParams } = config;
 
+  // Extract the model parameters.
+  const { pollInterval, onPoll, pricing, ...modelParams } = config;
   modelParams.messages = messages;
+
+  // Query API.
   const response = await client.messages.create(modelParams);
 
+  // Collect stats.
   const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-
   const cacheStats = cacheEnabled && {
     cacheHit: (response.usage.cache_read_input_tokens || 0) > 0,
     cacheMiss: (response.usage.cache_creation_input_tokens || 0) > 0,
@@ -122,15 +140,31 @@ const run = async (config, prompt, ...documents) => {
     cachedTokensCreated: response.usage.cache_creation_input_tokens || 0
   } || {};
 
+  // Collect text response.
   const text = response.content
     .filter(block => block.type === "text")
     .map(block => block.text)
     .join("\n");
 
+  // Collect stopping reasons.
+  const {
+    stop_reason,
+    stop_reasons = stop_reason,
+    stopReason = stop_reasons,
+    stopReasons = stopReason,
+    stopped = stopReasons
+  } = response;
+
+  // Return response.
   return {
     params: { ...modelParams, pricing },
-    input: messages,
-    output: { success: true, text },
+    input: {
+      config,
+      messages,
+      totalContentSize,
+      contentLength
+    },
+    output: { success: true, text, stopped: stopped || false },
     stats: {
       duration,
       inputTokens: response.usage.input_tokens || 0,

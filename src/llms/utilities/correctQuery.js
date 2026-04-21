@@ -135,6 +135,7 @@ const CORRECTIONS = {
   deepseek: "Deepseek",
   mistral: "Mistral",
   google: "Google",
+  william: "Will",
 
   // ---- Algae / Biology (domain-specific ranking failures) ----
   algea:    "algae",

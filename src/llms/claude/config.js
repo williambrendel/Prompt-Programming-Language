@@ -139,7 +139,7 @@ const SONNET46_CONFIG = Object.freeze({
 const HAIKU45_CONFIG = Object.freeze({
   apiKey,
   model: "claude-haiku-4-5-20251001",
-  max_tokens: 16000,
+  max_tokens: 32000,
   temperature: 0.3,
   pollInterval: 5000,
   pricing: PRICING["claude-haiku-4-5-20251001"],
@@ -159,12 +159,8 @@ const HAIKU45_CONFIG = Object.freeze({
  * @property {Object} pricing      - See {@link PRICING} entry for this model.
  */
 const HAIKU45_PASS1_CONFIG = Object.freeze({
-  apiKey,
-  model: "claude-haiku-4-5-20251001",
-  max_tokens: 16000,
+  ...HAIKU45_CONFIG,
   temperature: 0,
-  pollInterval: 5000,
-  pricing: PRICING["claude-haiku-4-5-20251001"],
 });
 
 /**
@@ -181,12 +177,8 @@ const HAIKU45_PASS1_CONFIG = Object.freeze({
  * @property {Object} pricing      - See {@link PRICING} entry for this model.
  */
 const HAIKU45_PASS2_CONFIG = Object.freeze({
-  apiKey,
-  model: "claude-haiku-4-5-20251001",
-  max_tokens: 16000,
+  ...HAIKU45_CONFIG,
   temperature: 0.3,
-  pollInterval: 5000,
-  pricing: PRICING["claude-haiku-4-5-20251001"],
 });
 
 /**
