@@ -6,12 +6,12 @@
  * Print token usage, cache performance, and estimated API cost from a Claude API response.
  *
  * Compatible with both `run()` and `batch()` response envelopes:
- * - `run()`   → `{ params, input: Object, output: { success, text }, stats }`
- * - `batch()` → `{ params, input: Array,  output: Array,             stats }`
+ * - `run()`   → `{ config, input: Object, output: { success, text }, stats }`
+ * - `batch()` → `{ config, input: Array,  output: Array,             stats }`
  *
- * Pricing is read from `params.pricing`. Falls back to Sonnet 4.6 defaults
+ * Pricing is read from `config.pricing`. Falls back to Sonnet 4.6 defaults
  * ($3.00 / $15.00 per 1M) if absent. Batch discount is read from
- * `params.pricing.batchDiscount` and applied automatically when the response
+ * `config.pricing.batchDiscount` and applied automatically when the response
  * is detected as a batch (i.e. `stats.succeeded` is present).
  *
  * @param {Object} response - Response envelope produced by `run` or `batch`.
@@ -25,11 +25,11 @@ const printStatistics = response => {
 
   const {
     input,
-    config: _config,
+    params,
+    config: _config = params,
     totalContentSize: _totalContentSize,
     contentLength: _contentLength,
     messages,
-    params,
     output,
     error
   } = response || {};
@@ -69,8 +69,8 @@ const printStatistics = response => {
     errored,
   } = stats;
 
-  // Pricing — always on params
-  const { pricing } = params || {};
+  // Pricing — always on config
+  const { pricing } = config || {};
   const { input: inputPricing, output: outputPricing } = pricing || {};
 
   // Rates — fall back to Sonnet 4.6 defaults
