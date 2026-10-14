@@ -8,30 +8,44 @@ const apiKey = process.env.ANTHROPIC_API_KEY;
  * @constant
  * @readonly
  * @description
- * Per-model pricing rates (USD per 1M tokens, as of Jan 2025).
+ * Per-model pricing rates (USD per 1M tokens).
  *
- * | Model                        | Input    | Cache Write | Cache Read | Output   |
- * |------------------------------|----------|-------------|------------|----------|
- * | claude-opus-4-20250514       | $15.00   | $18.75      | $1.50      | $75.00   |
- * | claude-sonnet-4-20250514     | $3.00    | $3.75       | $0.30      | $15.00   |
- * | claude-sonnet-4-6            | $3.00    | $3.75       | $0.30      | $15.00   |
- * | claude-haiku-4-5-20251001    | $1.00    | $1.25       | $0.10      | $5.00    |
+ * | Model              | Input  | Cache Write | Cache Read | Output |
+ * |--------------------|--------|-------------|------------|--------|
+ * | claude-opus-5-5    |  $4.00 |  $5.00      | $0.20      | $20.00 |
+ * | claude-opus-5      |  $5.00 |  $6.25      | $0.50      | $25.00 |
+ * | claude-sonnet-5-5  |  $2.00 |  $2.50      | $0.10      | $10.00 |
+ * | claude-sonnet-5    |  $2.00 |  $2.50      | $0.20      | $10.00 |
+ * | claude-sonnet-4-6  |  $3.00 |  $3.75      | $0.30      | $15.00 |
+ * | claude-haiku-4-5   |  $1.00 |  $1.25      | $0.10      |  $5.00 |
  *
- * **Cache write** is +25% over the standard input rate.
- * **Cache read** is -90% vs the standard input rate.
- * Caching becomes cost-positive from the third request onward for all models.
+ * Cache write is +25% over the standard input rate.
+ *
+ * Cache read is NOT a uniform -90% any more. It is 0.1x base for most models
+ * but 0.05x on the 5.5 generation, which makes Sonnet 5.5 strictly cheaper
+ * than Sonnet 5 for cache-heavy workloads despite identical base pricing.
  *
  * @type {Object.<string, {input: {standard: number, cacheWrite: number, cacheRead: number}, output: {standard: number}}>}
  */
 const PRICING = Object.freeze({
-  "claude-opus-4-20250514": Object.freeze({
-    input:  Object.freeze({ standard: 15.00, cacheWrite: 18.75, cacheRead: 1.50 }),
-    output: Object.freeze({ standard: 75.00 }),
+  "claude-opus-5-5": Object.freeze({
+    input:  Object.freeze({ standard: 4.00, cacheWrite: 5.00, cacheRead: 0.20 }),
+    output: Object.freeze({ standard: 20.00 }),
     batchDiscount: 0.50,
   }),
-  "claude-sonnet-4-20250514": Object.freeze({
-    input:  Object.freeze({ standard: 3.00, cacheWrite: 3.75, cacheRead: 0.30 }),
-    output: Object.freeze({ standard: 15.00 }),
+  "claude-opus-5": Object.freeze({
+    input:  Object.freeze({ standard: 5.00, cacheWrite: 6.25, cacheRead: 0.50 }),
+    output: Object.freeze({ standard: 25.00 }),
+    batchDiscount: 0.50,
+  }),
+  "claude-sonnet-5-5": Object.freeze({
+    input:  Object.freeze({ standard: 2.00, cacheWrite: 2.50, cacheRead: 0.10 }),
+    output: Object.freeze({ standard: 10.00 }),
+    batchDiscount: 0.50,
+  }),
+  "claude-sonnet-5": Object.freeze({
+    input:  Object.freeze({ standard: 2.00, cacheWrite: 2.50, cacheRead: 0.20 }),
+    output: Object.freeze({ standard: 10.00 }),
     batchDiscount: 0.50,
   }),
   "claude-sonnet-4-6": Object.freeze({
@@ -39,7 +53,7 @@ const PRICING = Object.freeze({
     output: Object.freeze({ standard: 15.00 }),
     batchDiscount: 0.50,
   }),
-  "claude-haiku-4-5-20251001": Object.freeze({
+  "claude-haiku-4-5": Object.freeze({
     input:  Object.freeze({ standard: 1.00, cacheWrite: 1.25, cacheRead: 0.10 }),
     output: Object.freeze({ standard: 5.00 }),
     batchDiscount: 0.50,
@@ -50,189 +64,165 @@ const PRICING = Object.freeze({
  * @constant
  * @readonly
  * @description
- * Base configuration for **Claude Opus 4** (`claude-opus-4-20250514`).
+ * Model-AGNOSTIC defaults. Nothing model-specific may live here.
  *
- * Highest capability model. Best for complex reasoning, nuanced writing,
- * and tasks where accuracy outweighs cost. Roughly 5× more expensive than
- * Sonnet 4 per token.
+ * This separation is load-bearing. `normalizeConfig` merges caller configs
+ * over `DEFAULT_CONFIG`, so any model-specific key sitting in the base leaks
+ * into every other model's request. Previously `DEFAULT_CONFIG` was a spread
+ * of the Sonnet 4.6 preset, so its `temperature: 0.5` reached every model —
+ * and Claude Sonnet 5 and Opus 5 REJECT `temperature` with a 400.
  *
- * @property {string} model       - `"claude-opus-4-20250514"`
- * @property {number} max_tokens  - `16000`
- * @property {number} temperature - `0.5`
- * @property {number} pollInterval - `5000`
- * @property {Object} pricing     - See {@link PRICING} entry for this model.
+ * Keep `model`, `max_tokens`, `temperature`, `thinking` and `pricing` in the
+ * presets below. Only add a key here if it is valid for every model.
+ *
+ * @type {object}
  */
-const OPUS4_CONFIG = Object.freeze({
+const BASE = Object.freeze({
   apiKey,
-  model: "claude-opus-4-20250514",
+  pollInterval: 5000,
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Current generation
+//
+// `temperature` was REMOVED on Opus 5.5 / Opus 5 / Sonnet 5.5 / Sonnet 5 —
+// sending it is a 400, not a warning. These presets omit it, and
+// `normalizeConfig` drops null/undefined so a preset can cancel a key it
+// never set rather than silently inheriting one.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Claude Opus 5.5 — highest capability. Cheaper than Opus 5 on every axis
+ * ($4/$20 against $5/$25) with cache reads at 0.05x base rather than 0.1x.
+ */
+const OPUS55_CONFIG = Object.freeze({
+  ...BASE,
+  model: "claude-opus-5-5",
   max_tokens: 16000,
-  temperature: 0.5,
-  pollInterval: 5000,
-  pricing: PRICING["claude-opus-4-20250514"],
+  thinking: { type: "adaptive" },
+  pricing: PRICING["claude-opus-5-5"],
+});
+
+/** Claude Opus 5 — prior Opus generation. Prefer OPUS55_CONFIG. */
+const OPUS5_CONFIG = Object.freeze({
+  ...BASE,
+  model: "claude-opus-5",
+  max_tokens: 16000,
+  thinking: { type: "adaptive" },
+  pricing: PRICING["claude-opus-5"],
 });
 
 /**
- * @constant
- * @readonly
- * @description
- * Base configuration for **Claude Sonnet 4.5** (`claude-sonnet-4-20250514`).
- *
- * Prior Sonnet generation. Use when targeting the stable 4.5 checkpoint
- * specifically. Same pricing as Sonnet 4.6.
- *
- * @property {string} model       - `"claude-sonnet-4-20250514"`
- * @property {number} max_tokens  - `20000`
- * @property {number} temperature - `0.65`
- * @property {number} pollInterval - `5000`
- * @property {Object} pricing     - See {@link PRICING} entry for this model.
+ * Claude Sonnet 5.5 — best price-to-performance and the default. Same base
+ * and output price as Sonnet 5 at half the cache-read rate.
  */
-const SONNET45_CONFIG = Object.freeze({
-  apiKey,
-  model: "claude-sonnet-4-20250514",
-  max_tokens: 20000,
-  temperature: 0.65,
-  pollInterval: 5000,
-  pricing: PRICING["claude-sonnet-4-20250514"],
+const SONNET55_CONFIG = Object.freeze({
+  ...BASE,
+  model: "claude-sonnet-5-5",
+  max_tokens: 32000,
+  thinking: { type: "adaptive" },
+  pricing: PRICING["claude-sonnet-5-5"],
+});
+
+/** Claude Sonnet 5 — prior Sonnet generation. Prefer SONNET55_CONFIG. */
+const SONNET5_CONFIG = Object.freeze({
+  ...BASE,
+  model: "claude-sonnet-5",
+  max_tokens: 32000,
+  thinking: { type: "adaptive" },
+  pricing: PRICING["claude-sonnet-5"],
 });
 
 /**
- * @constant
- * @readonly
- * @description
- * Base configuration for **Claude Sonnet 4.6** (`claude-sonnet-4-6`).
+ * Claude Haiku 4.5 — cheapest tier, for high-throughput classification,
+ * extraction and summarisation.
  *
- * Latest Sonnet generation. Best price-to-performance for most production
- * workloads. Recommended default. Roughly 5× cheaper than Opus 4.
- *
- * @property {string} model       - `"claude-sonnet-4-6"`
- * @property {number} max_tokens  - `40000`
- * @property {number} temperature - `0.5`
- * @property {number} pollInterval - `5000`
- * @property {Object} pricing     - See {@link PRICING} entry for this model.
- */
-const SONNET46_CONFIG = Object.freeze({
-  apiKey,
-  model: "claude-sonnet-4-6",
-  max_tokens: 40000,
-  temperature: 0.5,
-  thinking: { type: "disabled" },
-  pollInterval: 5000,
-  pricing: PRICING["claude-sonnet-4-6"],
-});
-
-/**
- * @constant
- * @readonly
- * @description
- * Base configuration for **Claude Haiku 4.5** (`claude-haiku-4-5-20251001`).
- *
- * Fastest and most cost-efficient model. Ideal for high-throughput, latency-sensitive
- * tasks such as classification, extraction, and summarisation at scale. Roughly
- * 4× cheaper than Sonnet 4 per input token.
- *
- * @property {string} model        - `"claude-haiku-4-5-20251001"`
- * @property {number} max_tokens   - `16000`
- * @property {number} temperature  - `0.3`
- * @property {number} pollInterval - `5000`
- * @property {Object} pricing      - See {@link PRICING} entry for this model.
+ * Pre-4.6 model: it ACCEPTS `temperature` (verified against the live API) and
+ * does NOT accept `thinking: {type:"adaptive"}`. `thinking: undefined` keeps
+ * an adaptive setting from a current-generation default leaking in.
  */
 const HAIKU45_CONFIG = Object.freeze({
-  apiKey,
-  model: "claude-haiku-4-5-20251001",
+  ...BASE,
+  model: "claude-haiku-4-5",
   max_tokens: 32000,
   temperature: 0.3,
-  pollInterval: 5000,
-  pricing: PRICING["claude-haiku-4-5-20251001"],
+  thinking: undefined,
+  pricing: PRICING["claude-haiku-4-5"],
 });
 
-/**
- * @constant
- * @readonly
- * @description
- * Haiku 4.5 configuration for **pass 1** (chunk extraction).
- * Temperature 0 ensures deterministic, consistent chunking across runs.
- *
- * @property {string} model        - `"claude-haiku-4-5-20251001"`
- * @property {number} max_tokens   - `16000`
- * @property {number} temperature  - `0` — deterministic
- * @property {number} pollInterval - `5000`
- * @property {Object} pricing      - See {@link PRICING} entry for this model.
- */
+/** Haiku 4.5, pass 1 (chunk extraction). Temperature 0 for determinism. */
 const HAIKU45_PASS1_CONFIG = Object.freeze({
   ...HAIKU45_CONFIG,
   temperature: 0,
 });
 
-/**
- * @constant
- * @readonly
- * @description
- * Haiku 4.5 configuration for **pass 2** (Q&A generation).
- * Temperature 0.3 allows variance in variant phrasing and anchor diversity.
- *
- * @property {string} model        - `"claude-haiku-4-5-20251001"`
- * @property {number} max_tokens   - `16000`
- * @property {number} temperature  - `0.3`
- * @property {number} pollInterval - `5000`
- * @property {Object} pricing      - See {@link PRICING} entry for this model.
- */
+/** Haiku 4.5, pass 2 (Q&A generation). Temperature 0.3 for phrasing variance. */
 const HAIKU45_PASS2_CONFIG = Object.freeze({
   ...HAIKU45_CONFIG,
   temperature: 0.3,
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Legacy presets — retained for existing callers.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Claude Sonnet 4.6 — accepts temperature. Prefer SONNET55_CONFIG. */
+const SONNET46_CONFIG = Object.freeze({
+  ...BASE,
+  model: "claude-sonnet-4-6",
+  max_tokens: 40000,
+  temperature: 0.5,
+  thinking: { type: "disabled" },
+  pricing: PRICING["claude-sonnet-4-6"],
+});
+
+/**
+ * @deprecated Alias for {@link SONNET55_CONFIG}.
+ *
+ * `claude-sonnet-4-20250514` is RETIRED — the API returns 404 for it. The
+ * name is kept so existing imports keep resolving. Update call sites and
+ * delete this alias.
+ */
+const SONNET45_CONFIG = SONNET55_CONFIG;
+
+/**
+ * @deprecated Alias for {@link OPUS55_CONFIG}.
+ *
+ * `claude-opus-4-20250514` is RETIRED (404). Opus 5.5 is also under a third
+ * of the price: $4/$20 against Opus 4's $15/$75.
+ */
+const OPUS4_CONFIG = OPUS55_CONFIG;
+
 /**
  * @constant
  * @readonly
  * @description
- * Main configuration object for Claude API interactions.
+ * Application default — {@link SONNET55_CONFIG}.
  *
- * `DEFAULT_CONFIG` re-exports {@link SONNET46_CONFIG} as the application default and
- * attaches all named model configs and the shared `PRICING` table as sub-properties,
- * giving callers a single import path for any model.
+ * The default MUST be a current-generation model, because it is the merge
+ * base for every other config. A base carrying `temperature` breaks every
+ * current model that merges onto it. A base without one is safe in both
+ * directions: legacy presets contribute their own, current presets none.
  *
- * ---
- *
- * ### Model comparison
- *
- * | Config           | Model                      | Temp  | max_tokens | Best for                              |
- * |------------------|----------------------------|-------|------------|---------------------------------------|
- * | `OPUS4_CONFIG`   | claude-opus-4-20250514     | 0.50  | 16 000     | Complex reasoning, high-stakes output |
- * | `SONNET46_CONFIG`| claude-sonnet-4-6          | 0.50  | 40 000     | General production workloads (default)|
- * | `SONNET45_CONFIG`| claude-sonnet-4-20250514   | 0.65  | 20 000     | Stable 4.5 checkpoint                 |
- * | `HAIKU45_CONFIG`  | claude-haiku-4-5-20251001  | 0.30  |  8 000     | High-throughput, low-latency tasks    |
- *
- * ### Pricing summary (USD / 1M tokens, as of Jan 2025)
- *
- * | Model        | Input  | Cache Write | Cache Read | Output  |
- * |--------------|--------|-------------|------------|---------|
- * | Opus 4       | $15.00 | $18.75      | $1.50      | $75.00  |
- * | Sonnet 4.5   | $3.00  | $3.75       | $0.30      | $15.00  |
- * | Sonnet 4.6   | $3.00  | $3.75       | $0.30      | $15.00  |
- * | Haiku 4.5    | $1.00  | $1.25       | $0.10      | $5.00   |
- *
- * @property {string} apiKey       - Anthropic API key from `ANTHROPIC_API_KEY` env var.
- * @property {string} model        - Active model identifier (defaults to Sonnet 4.6).
- * @property {number} max_tokens   - Max response tokens for the default model.
- * @property {number} temperature  - Sampling temperature for the default model.
- * @property {Object} pricing      - Pricing rates for the default (Sonnet 4.6) model.
- *
- * @property {Object} OPUS4_CONFIG    - Full config for Claude Opus 4. See {@link OPUS4_CONFIG}.
- * @property {Object} SONNET46_CONFIG - Full config for Claude Sonnet 4.6. See {@link SONNET46_CONFIG}.
- * @property {Object} SONNET45_CONFIG - Full config for Claude Sonnet 4.5. See {@link SONNET45_CONFIG}.
- * @property {Object} HAIKU45_CONFIG   - Full config for Claude Haiku 4.5. See {@link HAIKU45_CONFIG}.
- * @property {Object} PRICING         - Shared pricing table for all models. See {@link PRICING}.
+ * The named presets and PRICING are attached as NON-ENUMERABLE properties.
+ * That matters: they used to be plain spread members, which made them
+ * enumerable, so `normalizeConfig` needed a hardcoded key whitelist purely to
+ * stop `OPUS4_CONFIG` and friends being spread into the request body as API
+ * parameters. Making them non-enumerable removes the reason for that
+ * whitelist, so new keys like `thinking` reach the API instead of being
+ * silently dropped by a list nobody remembered to update.
  */
-const DEFAULT_CONFIG = {
-  ...SONNET46_CONFIG,
-  OPUS4_CONFIG,
-  SONNET45_CONFIG,
-  SONNET46_CONFIG,
-  HAIKU45_CONFIG,
-  HAIKU45_PASS1_CONFIG,
-  HAIKU45_PASS2_CONFIG,
-  PRICING,
-};
+const DEFAULT_CONFIG = { ...SONNET55_CONFIG };
+
+for (const [name, value] of Object.entries({
+  OPUS55_CONFIG, OPUS5_CONFIG,
+  SONNET55_CONFIG, SONNET5_CONFIG,
+  HAIKU45_CONFIG, HAIKU45_PASS1_CONFIG, HAIKU45_PASS2_CONFIG,
+  SONNET46_CONFIG, SONNET45_CONFIG, OPUS4_CONFIG,
+  BASE, PRICING,
+})) {
+  Object.defineProperty(DEFAULT_CONFIG, name, { value, enumerable: false });
+}
 
 /**
  * @ignore
