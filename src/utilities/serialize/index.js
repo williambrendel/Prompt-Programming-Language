@@ -149,7 +149,12 @@ const serialize = (block, options) => {
     subtask,
     subtasks = subtask,
     format,
-    formats,
+    // `= format`, matching every other singular/plural pair above
+    // (goals = goal, steps = step, tasks = task, schemas = schema). Without
+    // it, a block written with the singular `format` serialized to nothing:
+    // the serializer below only reads `formats`, so the field was silently
+    // dropped rather than erroring.
+    formats = format,
     required,
     schema,
     schemas = schema,
@@ -390,7 +395,10 @@ const NEWLINE_REPLACE_RE = /\r?\n|\r/g;
 const serializeField = (key, val, options, root, serialized, isObj) => (
   val && (
     options.prefix === "$" && (
-      typeof val !== "object" && (val = { descirption: val }),
+      // "description", not "descirption" — the misspelling was emitted
+      // verbatim into serialized output, so every scalar $-prefixed field
+      // produced an unrecognised key.
+      typeof val !== "object" && (val = { description: val }),
       serialized.length
         && serialized[serialized.length - 1].trim().charCodeAt(0) === 36
         && serialized.push(""),
